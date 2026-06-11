@@ -1,0 +1,158 @@
+# =============================================================================
+# config.prod.toml - Template de configuracao para ambientes de PRODUCAO
+#
+# COMO USAR:
+#   1. Copie este arquivo para o servidor de destino:
+#        Linux:   /etc/argus/config.prod.toml
+#        Windows: C:\ProgramData\Argus\config.prod.toml
+#
+#   2. Defina o token via variavel de ambiente (NUNCA coloque o token em texto):
+#        Linux (permanente via systemd - recomendado):
+#            edite /etc/systemd/system/argus-agent.service e adicione:
+#            Environment=AGENT_API_TOKEN=seu-token-de-producao-aqui
+#        Windows (Virtual Service Account via registro):
+#            HKLM\SYSTEM\CurrentControlSet\Services\ArgusAgent\Environment
+#
+#   3. Ajuste api_url para o endereco HTTPS real do sistema central.
+#
+#   4. VALIDE antes de ativar o envio:
+#        python runner.py --config config.prod.toml --dry-run
+#
+#   5. Execute (ou inicie o servico):
+#        python runner.py --config config.prod.toml
+#
+# SEGURANCA:
+#   - api_token esta vazio abaixo - o agente usara AGENT_API_TOKEN obrigatoriamente.
+#   - Um aviso e emitido se o token vier do TOML em vez da env var.
+#   - Nunca commite este arquivo com o token preenchido.
+#   - Permissoes recomendadas: chmod 600 (Linux) / ACL so para o servico (Windows).
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# [global] - Conexao e identidade do servidor
+# -----------------------------------------------------------------------------
+[global]
+
+# URL HTTPS da API central. Substitua pelo endereco real.
+# Env: AGENT_API_URL
+api_url = "https://COLOQUE_AQUI_O_ENDPOINT_DA_API"
+
+# Token de autenticacao. DEIXE VAZIO - use a variavel AGENT_API_TOKEN.
+# Se preenchido aqui, um aviso de seguranca sera emitido na inicializacao.
+# Env: AGENT_API_TOKEN  <- defina esta variavel de ambiente no servidor
+api_token = ""
+
+# Nome do servidor. Vazio = detecta automaticamente via hostname.
+# Env: AGENT_HOSTNAME
+hostname = ""
+
+# allow_http NAO deve ser habilitado em producao - mantenha o padrao (false).
+# Habilitar permitiria que o token viajasse em plaintext na rede.
+# allow_http = false
+
+
+# -----------------------------------------------------------------------------
+# [schedule] - Frequencia de execucao
+# -----------------------------------------------------------------------------
+[schedule]
+
+# 300 segundos = 5 minutos - ciclo padrao de producao.
+# Env: AGENT_INTERVAL_SECONDS
+interval_seconds = 300
+
+
+# -----------------------------------------------------------------------------
+# [retry] - Politica de reenvio em caso de falha
+# -----------------------------------------------------------------------------
+[retry]
+
+# Env: AGENT_RETRY_MAX_ATTEMPTS
+max_attempts = 3
+
+# Env: AGENT_RETRY_BACKOFF_SECONDS
+backoff_seconds = 10
+
+# Env: AGENT_HTTP_TIMEOUT
+http_timeout = 10
+
+# Diretorio de fila local para payloads pendentes.
+# Crie antes de iniciar: mkdir -p /var/lib/argus/queue (chmod 700)
+# Env: AGENT_QUEUE_PATH
+queue_path = "/var/lib/argus/queue"
+
+# Env: AGENT_QUEUE_MAX_SIZE
+queue_max_size = 1000
+
+
+# -----------------------------------------------------------------------------
+# [operacional] - Monitoramento de CPU, memoria, disco e servicos
+# -----------------------------------------------------------------------------
+[operacional]
+
+enabled = true
+
+cpu_threshold  = 90
+mem_threshold  = 85
+disk_threshold = 90
+
+# Ajuste para os servicos criticos do servidor de destino.
+critical_services_linux = [
+    "sshd",
+    "nginx",
+    "mysql",
+    "postgresql",
+    "cron",
+]
+
+critical_services_windows = [
+    "W3SVC",
+    "MSSQLSERVER",
+    "LanmanServer",
+    "WinRM",
+]
+
+
+# -----------------------------------------------------------------------------
+# [backup] - Verificacao de SLA e integridade de backups
+# -----------------------------------------------------------------------------
+[backup]
+
+enabled     = true
+sla_hours   = 24
+min_size_mb = 5
+
+extensions = [
+    ".tar.gz",
+    ".zip",
+    ".dump",
+    ".vhd",
+    ".vhdx",
+]
+
+# Ajuste para onde os backups estao armazenados neste servidor.
+paths_linux = [
+    "/mnt/backups",
+    "/var/backups",
+]
+
+paths_windows = [
+    "E:\\Backups",
+    "D:\\Backups",
+]
+
+
+# -----------------------------------------------------------------------------
+# [acesso] - Monitoramento de acessos SSH, sudo e configuracao de seguranca
+# -----------------------------------------------------------------------------
+[acesso]
+
+enabled = true
+
+
+# -----------------------------------------------------------------------------
+# [logs] - Verificacao de integridade e qualidade dos logs do sistema
+# -----------------------------------------------------------------------------
+[logs]
+
+enabled = true

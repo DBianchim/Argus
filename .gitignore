@@ -1,0 +1,42 @@
+# =============================================================================
+# .gitignore raiz do projeto Argus
+# =============================================================================
+
+# ── Segredos (NUNCA versionar) ───────────────────────────────────────────────
+# api/.env contém a senha do banco; agentes em produção usam variáveis de
+# ambiente. Os .env.example (templates) SÃO versionados.
+.env
+*.env
+!*.env.example
+agent.env
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# ── Node / frontend ──────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ── Bancos e artefatos locais ────────────────────────────────────────────────
+*.sqlite3
+*.db
+
+# ── Logs e temporários ───────────────────────────────────────────────────────
+*.log
+*.bak
+*.bak.*
+
+# ── Editor / SO ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

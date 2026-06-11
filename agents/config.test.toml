@@ -1,0 +1,86 @@
+# =============================================================================
+# config.test.toml - Configuração de teste local para validação dos agentes
+#
+# NÃO use em produção. Este arquivo contém um token de dev e aponta para
+# o mock_server.py rodando localmente.
+#
+# Uso:
+#   Terminal 1: python tools\mock_server.py
+#   Terminal 2: cd agents && python runner.py --config config.test.toml --log-level DEBUG
+# =============================================================================
+
+
+[global]
+api_url   = "http://localhost:8000"
+api_token = "argus-dev-token-2026"
+hostname  = ""
+# mock_server usa HTTP sem TLS — intencional apenas em dev.
+# Suprime o aviso de seguranca de HTTP plaintext.
+allow_http = true
+
+
+[schedule]
+# Ciclo rápido para validação — 30 segundos
+interval_seconds = 30
+
+
+[retry]
+max_attempts    = 3
+backoff_seconds = 5
+http_timeout    = 10
+
+# Fila local em %TEMP% para não poluir o sistema
+# Windows: C:\Users\<user>\AppData\Local\Temp\argus_test_queue
+queue_path     = "C:\\Users\\david\\AppData\\Local\\Temp\\argus_test_queue"
+queue_max_size = 100
+
+
+[operacional]
+enabled = true
+
+cpu_threshold  = 90
+mem_threshold  = 85
+disk_threshold = 90
+
+critical_services_linux = [
+    "sshd",
+    "cron",
+]
+
+# Serviços que geralmente existem em Windows dev/home
+critical_services_windows = [
+    "LanmanServer",
+    "WinRM",
+]
+
+
+[backup]
+enabled     = true
+sla_hours   = 24
+min_size_mb = 5
+
+extensions = [
+    ".tar.gz",
+    ".zip",
+    ".dump",
+    ".vhd",
+    ".vhdx",
+]
+
+paths_linux = [
+    "/mnt/backups",
+    "/var/backups",
+]
+
+paths_windows = [
+    "E:\\Backups",
+    "D:\\Backups",
+]
+
+
+[acesso]
+enabled = true
+
+
+[logs]
+enabled = true

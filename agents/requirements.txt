@@ -1,0 +1,10 @@
+# Dependencias de runtime do agente Argus
+#
+# Instalacao:
+#   pip install -r requirements.txt
+#
+# Observacao: tomllib e nativo no Python 3.11+; tomli so e necessario
+# em versoes anteriores (selecionado automaticamente pelo marker abaixo).
+
+requests>=2.31
+tomli>=2.0; python_version < "3.11"

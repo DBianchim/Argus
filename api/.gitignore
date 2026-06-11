@@ -1,0 +1,13 @@
+# Segredos — nunca versionar
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Bancos locais de teste
+*.sqlite3
+*.db

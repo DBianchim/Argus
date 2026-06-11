@@ -1,0 +1,141 @@
+# =============================================================================
+# config.toml - Configuracao central dos agentes de monitoramento Argus
+#
+# Este arquivo controla o comportamento de todos os agentes instalados
+# neste servidor. Edite os valores conforme o ambiente de destino.
+#
+# Variaveis de ambiente substituem qualquer valor definido aqui.
+# Prefixo das variaveis de ambiente: AGENT_
+# Exemplo: AGENT_API_URL="https://..." substitui api_url abaixo.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# [global] - Configuracoes de conexao e identidade do servidor
+# -----------------------------------------------------------------------------
+[global]
+
+# URL base da API central de ingestao de metricas.
+# Nao incluir barra no final.
+# Env: AGENT_API_URL
+api_url = "http://localhost:8000"
+
+# Token de autenticacao gerado pelo sistema central para este servidor.
+# ATENCAO: nao compartilhe este token entre servidores diferentes.
+# Env: AGENT_API_TOKEN
+api_token = "INSIRA_SEU_TOKEN_AQUI"
+
+# Nome do servidor. Deixe vazio para detectar automaticamente via hostname.
+# Env: AGENT_HOSTNAME
+hostname = ""
+
+
+# -----------------------------------------------------------------------------
+# [schedule] - Frequencia de execucao dos agentes
+# -----------------------------------------------------------------------------
+[schedule]
+
+# Intervalo em segundos entre cada ciclo completo de coleta e envio.
+# Exemplos: 60 = 1 minuto | 300 = 5 minutos | 900 = 15 minutos
+# Env: AGENT_INTERVAL_SECONDS
+interval_seconds = 300
+
+
+# -----------------------------------------------------------------------------
+# [retry] - Politica de reenvio em caso de falha de comunicacao
+# -----------------------------------------------------------------------------
+[retry]
+
+# Numero maximo de tentativas antes de salvar na fila local.
+# Env: AGENT_RETRY_MAX_ATTEMPTS
+max_attempts = 3
+
+# Tempo de espera em segundos entre tentativas (backoff linear).
+# Env: AGENT_RETRY_BACKOFF_SECONDS
+backoff_seconds = 10
+
+# Timeout em segundos para cada requisicao HTTP.
+# Env: AGENT_HTTP_TIMEOUT
+http_timeout = 10
+
+# Caminho do diretorio onde os payloads serao salvos quando o sistema
+# central estiver indisponivel.
+# Linux:   /var/lib/argus/agent-monitor/queue
+# Windows: C:\ProgramData\Argus\agent-monitor\queue
+# Env: AGENT_QUEUE_PATH
+queue_path = "/var/lib/argus/agent-monitor/queue"
+
+# Numero maximo de arquivos permitidos na fila local.
+# Env: AGENT_QUEUE_MAX_SIZE
+queue_max_size = 1000
+
+
+# -----------------------------------------------------------------------------
+# [operacional] - Parametros do agente de monitoramento operacional
+# -----------------------------------------------------------------------------
+[operacional]
+
+enabled = true
+
+cpu_threshold  = 90
+mem_threshold  = 85
+disk_threshold = 90
+
+critical_services_linux = [
+    "sshd",
+    "nginx",
+    "mysql",
+    "postgresql",
+    "cron",
+]
+
+critical_services_windows = [
+    "W3SVC",
+    "MSSQLSERVER",
+    "LanmanServer",
+    "WinRM",
+]
+
+
+# -----------------------------------------------------------------------------
+# [backup] - Parametros do agente de monitoramento de backup
+# -----------------------------------------------------------------------------
+[backup]
+
+enabled     = true
+sla_hours   = 24
+min_size_mb = 5
+
+extensions = [
+    ".tar.gz",
+    ".zip",
+    ".dump",
+    ".vhd",
+    ".vhdx",
+]
+
+paths_linux = [
+    "/mnt/backups",
+    "/var/backups",
+]
+
+paths_windows = [
+    "E:\\Backups",
+    "D:\\Backups",
+]
+
+
+# -----------------------------------------------------------------------------
+# [acesso] - Reservado para o agente de monitoramento de acesso
+# -----------------------------------------------------------------------------
+[acesso]
+
+enabled = false
+
+
+# -----------------------------------------------------------------------------
+# [logs] - Reservado para o agente de monitoramento de logs
+# -----------------------------------------------------------------------------
+[logs]
+
+enabled = false
