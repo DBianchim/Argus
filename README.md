@@ -139,6 +139,19 @@ alertas ativos, cards por servidor com status dos 4 pilares) → **Detalhe do
 Servidor** (gauges de CPU/memória/disco, serviços, backup vs SLA, findings de
 acesso/logs, histórico em gráfico). Atualização automática a cada 30s.
 
+### Notificações
+
+Quando o status de um servidor muda (ex.: vira CRÍTICO, fica OFFLINE, ou se
+recupera), o Argus registra a transição em `notification_log` e o dashboard
+dispara um **pop-up**: um toast in-app e — se o navegador permitir — uma
+notificação do sistema operacional (aparece mesmo com a aba em segundo plano).
+Notifica só na *mudança* de estado, nunca a cada ciclo. Sem e-mail/SMTP.
+
+- A detecção de servidor OFFLINE roda num loop em background na API (a ingestão
+  é orientada a eventos; "sem payload" não gera evento).
+- Histórico via `GET /api/v1/notifications`; o sino na barra superior mostra os
+  recentes.
+
 ## Instalação em produção
 
 Ver **[install/INSTALL.md](install/INSTALL.md)** — cobre Linux (systemd) e Windows
