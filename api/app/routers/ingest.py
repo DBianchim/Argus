@@ -15,8 +15,9 @@ import logging
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import crud
+from .. import crud, notifications
 from ..auth import authenticate_agent
+from ..config import settings
 from ..database import get_session
 from ..models import Server
 from ..schemas import IngestEnvelope, IngestResponse
@@ -56,5 +57,18 @@ async def ingest(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Erro ao persistir o payload — tente novamente",
         )
+
+    # Notificação (best-effort): reavalia o servidor e registra transição de
+    # estado. Falha aqui jamais afeta a resposta do ingest (payload já persistido).
+    try:
+        latest = await crud.latest_per_pilar(session, server.id)
+        pilar_metrics = {m.pilar: m.metrics for m in latest}
+        await notifications.evaluate_and_notify(
+            session, server, pilar_metrics, settings.offline_after_seconds
+        )
+    except Exception as exc:
+        await session.rollback()
+        logger.warning("Falha ao avaliar notificacao | pilar=%s | erro=%s",
+                       envelope.pilar, type(exc).__name__)
 
     return IngestResponse(status="accepted", metric_id=metric.id)

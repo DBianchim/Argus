@@ -140,6 +140,25 @@ class OverviewOut(BaseModel):
     generated_at: datetime.datetime
 
 
+class NotificationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id:          int
+    server_id:   int
+    severity:    str          # warn | crit | info
+    pilar:       str | None
+    item:        str | None
+    title:       str
+    detail:      str
+    status_from: str | None
+    status_to:   str
+    created_at:  datetime.datetime
+
+
+class NotificationPage(BaseModel):
+    items: list[NotificationOut]
+
+
 class ServerHealthOut(BaseModel):
     """Saúde de um servidor específico (header do detalhe)."""
     id:             int

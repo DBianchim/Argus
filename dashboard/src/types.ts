@@ -81,6 +81,23 @@ export interface MetricPage {
   items: MetricOut[];
 }
 
+export interface NotificationOut {
+  id: number;
+  server_id: number;
+  severity: "warn" | "crit" | "info";
+  pilar: string | null;
+  item: string | null;
+  title: string;
+  detail: string;
+  status_from: string | null;
+  status_to: string;
+  created_at: string;
+}
+
+export interface NotificationPage {
+  items: NotificationOut[];
+}
+
 // Blocos de metrics por pilar (parciais — tolerância a chaves ausentes)
 
 export interface OperacionalMetrics {

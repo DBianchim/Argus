@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from . import schemas
 from .auth import hash_token
 from .config import settings
-from .models import Metric, Server, User, UserSession
+from .models import Metric, NotificationLog, Server, User, UserSession
 
 
 def _utcnow() -> datetime.datetime:
@@ -67,7 +67,11 @@ async def latest_per_pilar(session: AsyncSession, server_id: int) -> list[Metric
     """
     rn = (
         func.row_number()
-        .over(partition_by=Metric.pilar, order_by=Metric.collected_at.desc())
+        .over(
+            partition_by=Metric.pilar,
+            # id desc desempata payloads com o mesmo collected_at (mesmo segundo)
+            order_by=(Metric.collected_at.desc(), Metric.id.desc()),
+        )
         .label("rn")
     )
     subq = (
@@ -94,7 +98,7 @@ async def latest_per_pilar_all(session: AsyncSession) -> list[Metric]:
         func.row_number()
         .over(
             partition_by=(Metric.server_id, Metric.pilar),
-            order_by=Metric.collected_at.desc(),
+            order_by=(Metric.collected_at.desc(), Metric.id.desc()),
         )
         .label("rn")
     )
@@ -139,6 +143,27 @@ async def revoke_session_by_token(session: AsyncSession, token: str) -> bool:
     user_session.revoked = True
     await session.commit()
     return True
+
+
+# ── notificacoes ──────────────────────────────────────────────────────────────
+
+async def list_notifications(
+    session: AsyncSession, *, limit: int = 50, since_id: int | None = None
+) -> list[NotificationLog]:
+    stmt = select(NotificationLog).order_by(NotificationLog.id.desc())
+    if since_id is not None:
+        stmt = stmt.where(NotificationLog.id > since_id)
+    stmt = stmt.limit(limit)
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def servers_for_offline_check(session: AsyncSession) -> list[Server]:
+    """Servidores já vistos ao menos uma vez (candidatos a virar OFFLINE)."""
+    result = await session.execute(
+        select(Server).where(Server.last_seen_at.is_not(None))
+    )
+    return list(result.scalars().all())
 
 
 async def query_metrics(

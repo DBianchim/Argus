@@ -33,5 +33,8 @@ class Settings(BaseSettings):
     # Sem payload por mais que isso → servidor considerado OFFLINE
     offline_after_seconds: int = 600
 
+    # Intervalo do loop em background que detecta servidores OFFLINE
+    offline_check_seconds: int = 60
+
 
 settings = Settings()

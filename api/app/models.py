@@ -47,6 +47,13 @@ class Server(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    # Último status avaliado pelo motor de análise — memória para detectar
+    # transições (e notificar só na mudança, não a cada ciclo).
+    last_status:            Mapped[str | None] = mapped_column(String(20), nullable=True)
+    last_status_changed_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     metrics: Mapped[list["Metric"]] = relationship(
         back_populates="server", cascade="all, delete-orphan"
     )
@@ -122,4 +129,27 @@ class Metric(Base):
         # Há também um índice GIN (jsonb_path_ops) sobre `metrics`, definido apenas
         # na migração 0002 — é específico do PostgreSQL (SQLite dos testes não tem GIN).
         Index("ix_metrics_server_pilar_collected", "server_id", "pilar", "collected_at"),
+    )
+
+
+class NotificationLog(Base):
+    """
+    Registro de cada transição de estado de um servidor — fonte da verdade
+    dos alertas. Alimenta o pop-up do dashboard e uma futura central de alertas.
+    """
+    __tablename__ = "notification_log"
+
+    id:          Mapped[int] = mapped_column(primary_key=True)
+    server_id:   Mapped[int] = mapped_column(
+        ForeignKey("servers.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    severity:    Mapped[str] = mapped_column(String(8), nullable=False)   # warn|crit|info
+    pilar:       Mapped[str | None] = mapped_column(String(20), nullable=True)
+    item:        Mapped[str | None] = mapped_column(String(80), nullable=True)
+    title:       Mapped[str] = mapped_column(String(160), nullable=False)
+    detail:      Mapped[str] = mapped_column(String(500), default="", nullable=False)
+    status_from: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    status_to:   Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at:  Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )

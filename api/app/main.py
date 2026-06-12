@@ -1,8 +1,11 @@
 """
 main.py — Aplicação FastAPI da central Argus
 
-Registra os routers (health, ingest, servers, metrics, auth, overview) e expõe
-a documentação automática em /docs (Swagger) e /redoc.
+Registra os routers (health, ingest, auth, overview, servers, metrics,
+notifications) e expõe a documentação automática em /docs.
+
+Um loop em background (lifespan) detecta servidores OFFLINE — ingest é
+event-driven, mas "sem payload" não gera evento.
 
 Quando o build do dashboard existe (dashboard/dist), a SPA é servida pela
 própria API — deploy único. Em desenvolvimento, o Vite roda separado com proxy.
@@ -11,21 +14,59 @@ Execução:
     uvicorn app.main:app --port 8000 --reload
 """
 
+import asyncio
+import contextlib
+import datetime
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from . import __version__
+from . import __version__, crud, notifications
 from .config import settings
+from .database import SessionLocal
 from .routers import auth as auth_router
-from .routers import health, ingest, metrics, overview, servers
+from .routers import health, ingest, metrics
+from .routers import notifications as notifications_router
+from .routers import overview, servers
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
+logger = logging.getLogger(__name__)
+
+
+async def _offline_watch() -> None:
+    """Loop: marca servidores sem contato como OFFLINE e gera a notificação."""
+    while True:
+        await asyncio.sleep(settings.offline_check_seconds)
+        try:
+            async with SessionLocal() as session:
+                now = datetime.datetime.now(datetime.timezone.utc)
+                for server in await crud.servers_for_offline_check(session):
+                    # Sem métricas: evaluate_server retorna OFFLINE com o alerta
+                    await notifications.evaluate_and_notify(
+                        session, server, {}, settings.offline_after_seconds, now
+                    )
+        except Exception as exc:  # nunca derruba o loop
+            logger.warning("Falha no loop de offline | erro=%s", type(exc).__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_offline_watch())
+    logger.info("Loop de deteccao de OFFLINE iniciado (cada %ds)",
+                settings.offline_check_seconds)
+    try:
+        yield
+    finally:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
 
 app = FastAPI(
     title="Argus API",
@@ -34,12 +75,14 @@ app = FastAPI(
         "Central de monitoramento Argus — ingestão de métricas dos agentes "
         "(operacional, backup, acesso, logs) e consultas para o dashboard."
     ),
+    lifespan=lifespan,
 )
 
 app.include_router(health.router)
 app.include_router(ingest.router)
 app.include_router(auth_router.router)
 app.include_router(overview.router)
+app.include_router(notifications_router.router)
 app.include_router(servers.router)
 app.include_router(metrics.router)
 

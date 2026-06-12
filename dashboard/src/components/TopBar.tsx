@@ -2,6 +2,7 @@ import { Eye, LogOut, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getStoredUser, logout } from "../api/client";
 import { relativeTime } from "../utils";
+import { NotificationsBell } from "./NotificationsBell";
 
 export function TopBar({ updatedAt }: { updatedAt?: string }) {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export function TopBar({ updatedAt }: { updatedAt?: string }) {
             atualizado {relativeTime(updatedAt)}
           </span>
         )}
+        <NotificationsBell />
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-border text-xs font-medium text-slate-300">
             {(user?.display_name ?? user?.username ?? "?")
