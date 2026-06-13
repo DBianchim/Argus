@@ -18,11 +18,18 @@ import asyncio
 import contextlib
 import datetime
 import logging
+import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+
+# O catch-all da SPA serve o manifest da PWA via FileResponse, que infere o tipo
+# pela extensão. .webmanifest não é conhecido por padrão (cairia em text/plain),
+# então registramos o tipo correto para o navegador aceitar a instalação.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+mimetypes.add_type("text/javascript", ".js")
 
 from . import __version__, crud, notifications
 from .config import settings

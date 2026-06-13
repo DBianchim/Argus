@@ -152,6 +152,20 @@ Notifica só na *mudança* de estado, nunca a cada ciclo. Sem e-mail/SMTP.
 - Histórico via `GET /api/v1/notifications`; o sino na barra superior mostra os
   recentes.
 
+### Instalar como app (PWA)
+
+O dashboard é uma PWA — pode ser instalado e aberto como um **app próprio** (janela
+isolada, ícone na barra de tarefas, sem abas nem barra de endereço), usando o motor
+do Chromium.
+
+1. Abra `http://localhost:8000` no **Chrome** ou **Edge**.
+2. Clique no ícone **Instalar** na barra de endereço (ou menu → "Instalar Argus").
+3. O Argus passa a abrir em janela própria. As notificações e o pop-up do SO
+   continuam funcionando.
+
+> Requer contexto seguro: funciona em `localhost`; em produção, sirva a API por
+> **HTTPS** para que a instalação fique disponível.
+
 ## Instalação em produção
 
 Ver **[install/INSTALL.md](install/INSTALL.md)** — cobre Linux (systemd) e Windows
