@@ -58,6 +58,11 @@ class GlobalConfig:
     api_token:  str
     hostname:   str
     allow_http: bool = False
+    # Caminho para um certificado de CA confiavel (arquivo PEM). Usado quando a
+    # central esta atras de um proxy com CA interna (ex.: Caddy `tls internal`),
+    # cujo certificado nao e reconhecido pelas CAs publicas. None = usar as CAs
+    # padrao do sistema (caso de domINio publico com Let's Encrypt).
+    ca_cert:    Optional[str] = None
 
     def _mask_token(self) -> str:
         """Retorna uma versao mascarada do token, segura para exibir em logs."""
@@ -72,7 +77,8 @@ class GlobalConfig:
             f'GlobalConfig(api_url={self.api_url!r}, '
             f'api_token={self._mask_token()!r}, '
             f'hostname={self.hostname!r}, '
-            f'allow_http={self.allow_http!r})'
+            f'allow_http={self.allow_http!r}, '
+            f'ca_cert={self.ca_cert!r})'
         )
 
     def __str__(self) -> str:
@@ -156,6 +162,7 @@ def _apply_env_overrides(raw: dict) -> dict:
         AGENT_API_URL              → global.api_url
         AGENT_API_TOKEN            → global.api_token
         AGENT_HOSTNAME             → global.hostname
+        AGENT_CA_CERT              → global.ca_cert
         AGENT_INTERVAL_SECONDS     → schedule.interval_seconds
         AGENT_RETRY_MAX_ATTEMPTS   → retry.max_attempts
         AGENT_RETRY_BACKOFF_SECONDS→ retry.backoff_seconds
@@ -178,6 +185,8 @@ def _apply_env_overrides(raw: dict) -> dict:
         g['api_token'] = val
     if val := env.get('AGENT_HOSTNAME'):
         g['hostname'] = val
+    if val := env.get('AGENT_CA_CERT'):
+        g['ca_cert'] = val
 
     # [schedule]
     s = raw.setdefault('schedule', {})
@@ -298,6 +307,13 @@ def _validate(raw: dict) -> None:
             '[global] api_token nao configurado — '
             'defina AGENT_API_TOKEN como variavel de ambiente ou no config.toml'
         )
+    # ca_cert (opcional): se definido, o arquivo PEM precisa existir — falhar
+    # cedo evita erros obscuros de TLS so na hora do envio.
+    ca_cert = g.get('ca_cert')
+    if ca_cert and not Path(ca_cert).is_file():
+        errors.append(
+            f'[global] ca_cert aponta para um arquivo inexistente: {ca_cert}'
+        )
 
     # [schedule] — valores positivos
     s = raw.get('schedule', {})
@@ -358,6 +374,7 @@ def _build_config(raw: dict) -> AgentConfig:
             api_token=g.get('api_token', ''),
             hostname=hostname,
             allow_http=bool(g.get('allow_http', False)),
+            ca_cert=((g.get('ca_cert') or '').strip() or None),
         ),
         schedule=ScheduleConfig(
             interval_seconds=int(s.get('interval_seconds', 300)),

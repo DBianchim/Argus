@@ -1,0 +1,49 @@
+# Contexto de build do Docker — mantém a imagem enxuta e o build reprodutível.
+# Tudo que não é necessário para construir a CENTRAL (API + dashboard) fica de fora.
+
+# Segredos — NUNCA entram na imagem
+*.env
+!*.env.example
+
+# Node / frontend (o build roda dentro do container via `npm ci`)
+**/node_modules
+**/dist
+**/dist-ssr
+*.local
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+**/.venv
+**/venv
+**/env
+**/.pytest_cache
+**/.mypy_cache
+
+# Bancos e artefatos locais
+*.sqlite3
+*.db
+
+# Logs e temporários
+*.log
+*.bak
+*.bak.*
+
+# Git e metadados
+.git
+.gitignore
+.gitattributes
+.dockerignore
+
+# Editor / SO
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Documentação e instaladores dos agentes (não fazem parte da imagem da central)
+install
+tools
+tests
+*.md

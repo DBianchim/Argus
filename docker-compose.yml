@@ -1,0 +1,80 @@
+# =============================================================================
+# docker-compose.yml — CENTRAL do Argus (on-premise, uma instalação por empresa)
+#
+#   db    → PostgreSQL 18 (volume persistente, sem porta no host)
+#   api   → FastAPI + dashboard buildado (migrations no boot, sem porta no host)
+#   caddy → reverse proxy + HTTPS (único serviço exposto: 80/443)
+#
+# Subir:   docker compose up -d --build
+# Segredos vêm do arquivo .env (ver .env.example). Todos com restart automático,
+# então a central sobe no boot da máquina e se recupera de quedas.
+# =============================================================================
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: argus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: argus
+    volumes:
+      # PG 18+ espera o volume em /var/lib/postgresql (os dados ficam num
+      # subdiretório por versão). Montar em .../data quebra com erro fatal.
+      - argus-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U argus -d argus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [argus-net]
+    # Sem `ports:` — o banco só é acessível pela rede interna do compose.
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # DATABASE_URL montada a partir da senha única do .env (driver async).
+      DATABASE_URL: postgresql+asyncpg://argus:${POSTGRES_PASSWORD}@db:5432/argus
+      DASHBOARD_TOKEN: ${DASHBOARD_TOKEN:?defina DASHBOARD_TOKEN no .env}
+      APP_ENV: prod
+      LOG_LEVEL: INFO
+    healthcheck:
+      # Usa o Python já presente na imagem (sem curl/wget). /health checa o banco.
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    networks: [argus-net]
+    # Sem `ports:` — a API só é acessível via Caddy.
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      # Hostname/IP de acesso à central (cert interno é emitido para este nome).
+      # Default localhost; defina ARGUS_HOST no .env para o nome usado na rede.
+      ARGUS_HOST: ${ARGUS_HOST:-localhost}
+    ports:
+      - "80:80"    # redireciona para 443 (e ACME http-01 no modo nuvem)
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - argus-caddy-data:/data       # CA local + certificados — NÃO descartar
+      - argus-caddy-config:/config
+    networks: [argus-net]
+
+volumes:
+  argus-pgdata:
+  argus-caddy-data:
+  argus-caddy-config:
+
+networks:
+  argus-net:

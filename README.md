@@ -168,6 +168,27 @@ do Chromium.
 
 ## Instalação em produção
 
+São duas instalações independentes: a **central** (uma por empresa) e os **agentes**
+(um por servidor monitorado).
+
+### Central (API + banco + dashboard)
+
+Empacotada em Docker Compose — um comando sobe PostgreSQL + API + reverse proxy com
+HTTPS, todos com restart automático (sobem no boot, se recuperam de quedas):
+
+```bash
+cp .env.example .env          # preencha POSTGRES_PASSWORD e DASHBOARD_TOKEN
+docker compose up -d --build  # migrations rodam sozinhas no boot
+docker compose exec api python manage.py create-user --username admin
+```
+
+HTTPS é automático via Caddy (`tls internal` — CA local, sem domínio público; ou
+Let's Encrypt apontando para um domínio). Defina `ARGUS_HOST` no `.env` com o nome
+de acesso da central na rede (default `localhost`). Guia completo (CA do Caddy,
+PWA, backup, opção nuvem): **[install/DEPLOY.md](install/DEPLOY.md)**.
+
+### Agentes
+
 Ver **[install/INSTALL.md](install/INSTALL.md)** — cobre Linux (systemd) e Windows
 (serviço com Virtual Service Account), token via variável de ambiente, conta de
 serviço sem privilégios e validação com `--dry-run` antes de ativar o envio.

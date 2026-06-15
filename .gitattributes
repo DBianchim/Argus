@@ -1,0 +1,5 @@
+# Scripts shell DEVEM ter fim de linha LF, mesmo em checkout no Windows.
+# Um entrypoint com CRLF (\r\n) quebra o container: o kernel lê o shebang como
+# "/bin/sh\r" e falha com "exec format error" / "no such file or directory".
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf

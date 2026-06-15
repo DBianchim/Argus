@@ -51,6 +51,15 @@ hostname = ""
 # Habilitar permitiria que o token viajasse em plaintext na rede.
 # allow_http = false
 
+# ca_cert: caminho para a CA confiavel (arquivo PEM). Necessario quando a
+# central usa CA INTERNA (Caddy `tls internal`), cujo certificado nao e
+# reconhecido pelas CAs publicas. Sem isso, o envio HTTPS falha na validacao.
+# Extraia a CA da central (ver install/DEPLOY.md) e copie para este servidor.
+# Deixe comentado quando a central usar dominio publico (Let's Encrypt).
+# Env: AGENT_CA_CERT
+# Linux:   ca_cert = "/etc/argus/agent-monitor/argus-ca.crt"
+# Windows: ca_cert = "C:\\ProgramData\\Argus\\agent-monitor\\argus-ca.crt"
+
 
 # -----------------------------------------------------------------------------
 # [schedule] - Frequencia de execucao

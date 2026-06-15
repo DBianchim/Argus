@@ -1,0 +1,27 @@
+# =============================================================================
+# Caddyfile — reverse proxy + TLS da CENTRAL do Argus
+#
+# Termina HTTPS e encaminha TUDO (/api, /health, /docs e o SPA) para a API.
+# A API não expõe porta no host; só o Caddy é acessível de fora.
+# Caddy redireciona 80 → 443 automaticamente.
+# =============================================================================
+
+# ===== MODO ON-PREMISE (PADRÃO) ==============================================
+# O endereço do site vem da variável ARGUS_HOST (default: localhost). Defina
+# ARGUS_HOST no .env com o nome ou IP usado para acessar a central na rede da
+# empresa (ex.: argus.empresa.local ou 10.0.0.20).
+#
+# `tls internal` faz o Caddy gerar uma CA local e emitir o certificado da
+# central para esse hostname — sem domínio público, sem comprar certificado.
+# Instale a CA raiz do Caddy nas máquinas que vão acessar (ver install/DEPLOY.md)
+# para o navegador tratar a central como contexto seguro e oferecer instalar a PWA.
+{$ARGUS_HOST:localhost} {
+	tls internal
+	reverse_proxy api:8000
+}
+
+# ===== MODO NUVEM (domínio público + Let's Encrypt) ==========================
+# Para publicar em um domínio real: defina ARGUS_HOST com o domínio (ex.:
+# argus.suaempresa.com.br) e REMOVA a linha `tls internal` acima. O Caddy passa
+# a emitir e renovar o certificado Let's Encrypt automaticamente (exige portas
+# 80/443 acessíveis da internet e DNS apontando para a central).

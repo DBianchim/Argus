@@ -106,9 +106,15 @@ def _attempt_send(
     headers:    dict,
     payload:    dict,
     timeout:    int,
+    verify:     bool | str,
 ) -> tuple[int | None, Exception | None]:
     """
     Realiza uma unica tentativa de envio HTTP POST.
+
+    Args:
+        verify: Validacao TLS. True = CAs padrao do sistema; caminho de arquivo
+                PEM = valida contra essa CA (ex.: CA interna do Caddy). Nunca
+                False — a validacao TLS permanece sempre ativa.
 
     Returns:
         Tupla (http_code, exception).
@@ -123,8 +129,8 @@ def _attempt_send(
             headers=attempt_headers,
             json=payload,
             timeout=timeout,
-            verify=True,   # explicito: garante validacao TLS mesmo se o
-                           # default do requests mudar no futuro
+            verify=verify,   # True (CAs do sistema) ou caminho da CA interna;
+                             # a validacao TLS nunca e desligada
         )
         return response.status_code, None
 
@@ -162,6 +168,8 @@ def send_payload(payload: dict, config: AgentConfig, queue_fn=None) -> SendResul
     timeout  = config.retry.http_timeout
     max_att  = config.retry.max_attempts
     backoff  = config.retry.backoff_seconds
+    # CA interna (Caddy `tls internal`) quando configurada; senao CAs do sistema.
+    verify   = config.global_.ca_cert or True
     pilar    = payload.get('pilar', 'desconhecido')
     hostname = payload.get('hostname', 'desconhecido')
 
@@ -183,7 +191,7 @@ def send_payload(payload: dict, config: AgentConfig, queue_fn=None) -> SendResul
             )
             time.sleep(wait)
 
-        http_code, exception = _attempt_send(url, headers, payload, timeout)
+        http_code, exception = _attempt_send(url, headers, payload, timeout, verify)
         last_code      = http_code
         last_exception = exception
 
