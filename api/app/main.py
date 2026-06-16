@@ -35,7 +35,7 @@ from . import __version__, crud, notifications
 from .config import settings
 from .database import SessionLocal
 from .routers import auth as auth_router
-from .routers import health, ingest, metrics
+from .routers import health, ingest, install, metrics
 from .routers import notifications as notifications_router
 from .routers import overview, servers
 
@@ -92,6 +92,7 @@ app.include_router(overview.router)
 app.include_router(notifications_router.router)
 app.include_router(servers.router)
 app.include_router(metrics.router)
+app.include_router(install.router)
 
 
 # ── SPA (build do dashboard) ──────────────────────────────────────────────────

@@ -42,8 +42,8 @@
 .DS_Store
 Thumbs.db
 
-# Documentação e instaladores dos agentes (não fazem parte da imagem da central)
-install
+# Fora da imagem. NOTA: install/ É incluído de propósito — a central serve os
+# scripts de instalação dos agentes (bootstrap) a partir de /app/install.
 tools
 tests
 *.md

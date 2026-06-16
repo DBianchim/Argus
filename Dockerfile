@@ -43,6 +43,12 @@ RUN pip install -r requirements.txt
 COPY api/ /app/api/
 COPY --from=dashboard-build /dashboard/dist /app/dashboard/dist
 
+# Artefatos de instalação dos agentes, servidos pela rota /install:
+#   - agents/  → empacotado em argus-agent.zip sob demanda
+#   - install/ → scripts install.ps1 / install.sh
+COPY agents/ /app/agents/
+COPY install/ /app/install/
+
 # Entrypoint: roda migrations e então exec do uvicorn (uvicorn vira PID 1).
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

@@ -3,10 +3,46 @@
 #
 # Termina HTTPS e encaminha TUDO (/api, /health, /docs e o SPA) para a API.
 # A API não expõe porta no host; só o Caddy é acessível de fora.
-# Caddy redireciona 80 → 443 automaticamente.
+#
+# Além disso, serve os artefatos de instalação dos agentes em /install/*:
+#   • /install/ca.crt          → a CA do Caddy (servida pelo próprio Caddy)
+#   • /install/install.ps1|sh  → scripts de instalação (proxy para a API)
+#   • /install/argus-agent.zip → código do agente        (proxy para a API)
+# Esses são acessíveis por HTTP (porta 80) para o "bootstrap": o servidor-alvo
+# precisa baixar a CA ANTES de confiar no HTTPS. Não há segredo nesses arquivos.
 # =============================================================================
 
-# ===== MODO ON-PREMISE (PADRÃO) ==============================================
+# Opções globais. `auto_https disable_redirects`: o Caddy continua gerando o
+# certificado interno, mas NÃO cria o redirect automático 80→443 — assim o nosso
+# site `:80` controla a porta 80 por completo (servir /install/* e redirecionar o
+# resto). Sem isto, o redirect automático do host configurado capturaria /install/*.
+{
+	auto_https disable_redirects
+}
+
+# Bloco reutilizável: serve a CA interna do Caddy (arquivo PEM) em /install/ca.crt.
+(serve_ca) {
+	handle /install/ca.crt {
+		root * /data/caddy/pki/authorities/local
+		rewrite * /root.crt
+		file_server
+	}
+}
+
+# ===== Porta 80 (HTTP) — só para o bootstrap =================================
+# Serve /install/* sem exigir HTTPS (para baixar a CA e o código do agente).
+# Todo o resto é redirecionado para HTTPS.
+:80 {
+	import serve_ca
+	handle /install/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}
+
+# ===== MODO ON-PREMISE (PADRÃO) — HTTPS ======================================
 # O endereço do site vem da variável ARGUS_HOST (default: localhost). Defina
 # ARGUS_HOST no .env com o nome ou IP usado para acessar a central na rede da
 # empresa (ex.: argus.empresa.local ou 10.0.0.20).
@@ -17,6 +53,7 @@
 # para o navegador tratar a central como contexto seguro e oferecer instalar a PWA.
 {$ARGUS_HOST:localhost} {
 	tls internal
+	import serve_ca
 	reverse_proxy api:8000
 }
 

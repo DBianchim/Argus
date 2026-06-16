@@ -85,12 +85,31 @@ docker compose exec api python manage.py create-user --username admin
 docker compose exec api python manage.py create-server --hostname SRV01 --os linux
 ```
 
-Use o token retornado ao instalar o agente naquele servidor (ver INSTALL.md).
+Use o token retornado ao instalar o agente naquele servidor (ver abaixo).
 
 ### 4. Acessar
 
 Abra `https://<ip-ou-nome-da-central>` (ou `https://localhost` se for na própria
 máquina). Faça login com o usuário criado.
+
+### 5. Instalar os agentes (bootstrap pela central)
+
+Com a central no ar, cada servidor monitorado se instala com **um comando** que
+baixa tudo da central (código + CA), sem copiar arquivos. Troque `<central>` pelo
+`ARGUS_HOST` e `<token>` pelo token do passo 3:
+
+```bash
+# Linux
+curl -fsSL http://<central>/install/install.sh \
+  | sudo ARGUS_HOST=<central> ARGUS_TOKEN=<token> bash
+```
+```powershell
+# Windows (PowerShell como Administrador)
+$env:ARGUS_HOST="<central>"; $env:ARGUS_TOKEN="<token>"; `
+  irm "http://$($env:ARGUS_HOST)/install/install.ps1" | iex
+```
+
+Detalhes, conceitos e operação dos agentes: **[INSTALL.md](INSTALL.md)**.
 
 ---
 

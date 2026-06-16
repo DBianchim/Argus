@@ -1,163 +1,108 @@
-# Instalação Segura do Argus Agent
+# Instalação dos Agentes Argus (bootstrap pela central)
 
-Guia de instalação do agente de monitoramento Argus em servidores **Linux** e
-**Windows**, com foco em segurança: token fora de arquivos de configuração,
-conta de serviço sem privilégios e validação antes de ativar o envio.
+Cada **servidor monitorado** roda um agente que coleta métricas e as envia para a
+**central**. A instalação é feita com **um único comando** que baixa tudo da própria
+central — sem copiar arquivos nem extrair certificado à mão.
+
+> Pré-requisito: a central já deve estar no ar (ver [DEPLOY.md](DEPLOY.md)).
 
 ---
 
-## Pré-requisitos
+## Passo 1 — Na central: registrar o servidor e pegar o token
 
-| Item | Linux | Windows |
-|------|-------|---------|
-| Python | 3.11+ (instalado automaticamente) | 3.11+ (via winget) |
-| Dependências | `requests` (+ `tomli` se Python < 3.11) | `requests` |
-| Privilégio | `root` (sudo) | Administrador |
-| Gerenciador de serviço | systemd | Serviços do Windows (sc.exe) |
+Para cada servidor que será monitorado, gere um token (exibido **uma única vez**):
 
-Os instaladores cuidam de Python e dependências automaticamente.
+```bash
+docker compose exec api python manage.py create-server --hostname SRV-WEB-01 --os linux
+# ⮕ copie o token retornado
+```
+
+---
+
+## Passo 2 — No servidor monitorado: um comando
+
+Troque `<central>` pelo nome/IP da central (o mesmo `ARGUS_HOST` do deploy) e
+`<token>` pelo token do passo 1.
+
+### Linux
+
+```bash
+curl -fsSL http://<central>/install/install.sh \
+  | sudo ARGUS_HOST=<central> ARGUS_TOKEN=<token> bash
+```
+
+### Windows (PowerShell **como Administrador**)
+
+```powershell
+$env:ARGUS_HOST="<central>"; $env:ARGUS_TOKEN="<token>"; `
+  irm "http://$($env:ARGUS_HOST)/install/install.ps1" | iex
+```
+
+Pronto. O agente é instalado como **serviço** (systemd no Linux, serviço do Windows),
+sobe no boot, valida a coleta e começa a enviar por HTTPS. Em ~1 min o servidor
+aparece online no dashboard.
+
+> Sem passar as variáveis, o script **pergunta** o endereço da central e o token.
+> No Windows, quem tem os arquivos localmente pode dar duplo-clique em `install.bat`
+> (ele eleva e chama o `install.ps1`).
+
+---
+
+## O que o instalador faz (e por quê) — para você replicar
+
+```
+SERVIDOR-ALVO                                CENTRAL (Docker: caddy + api)
+  comando único ───── HTTP/80 ─────────────▶ /install/install.(ps1|sh)  script
+                                              /install/argus-agent.zip   código
+                                              /install/ca.crt            CA do Caddy
+  baixa CA + código
+  confia na CA + salva p/ o agente (ca_cert)
+  instala Python (all-users no Win) + serviço
+  envia métricas ──── HTTPS/443 (valida CA) ─▶ /api/v1/ingest
+```
+
+Três conceitos importantes:
+
+1. **Por que o download é por HTTP (porta 80)?**
+   Para confiar no HTTPS da central, o servidor precisa **primeiro** ter a CA — mas
+   baixá-la por HTTPS exigiria já confiar nela (ovo e galinha). A CA e o código do
+   agente **não são segredos**, então o download inicial vai por HTTP. O **token** é
+   informado no servidor-alvo (nunca trafega no download) e as **métricas vão por
+   HTTPS**. Em modo nuvem (domínio público), até o download é HTTPS.
+
+2. **Por que `ca_cert` no agente?**
+   O agente é Python (`requests`), que valida o certificado contra a sua própria lista
+   (`certifi`), **não** contra o repositório de certificados do sistema operacional.
+   Por isso o instalador salva a CA da central e aponta `ca_cert` para ela no
+   `config.toml`. (No Windows, a CA também é instalada no trust do SO, para o navegador.)
+
+3. **Por que Python "para todos os usuários" no Windows?**
+   A execução roda como conta **SYSTEM**, que **não acessa o perfil de um usuário**.
+   Se o Python estiver em `C:\Users\<voce>\...`, falha com "Acesso negado". O
+   instalador garante um Python em `C:\Program Files\...`.
+
+4. **Por que Tarefa Agendada no Windows (e não um Serviço)?**
+   Um Serviço do Windows precisa "falar" o protocolo do gerenciador de serviços (SCM)
+   e reportar "estou no ar" em até 30s. O `runner.py` é um script comum — não faz isso,
+   então como Serviço ele seria morto com timeout (erro 1053). A solução nativa é uma
+   **Tarefa Agendada** iniciada no boot, rodando como **SYSTEM** (que também consegue
+   ler o **log de Segurança** do Windows, usado pelos pilares *acesso* e *logs*). No
+   Linux, o systemd não exige esse protocolo, então lá é um serviço systemd normal.
 
 ---
 
 ## Modelo de segurança
 
-O ponto central: **o token nunca fica em arquivo de configuração.**
-
-```
-config.toml          →  api_token = ""   (sem segredo, pode ser lido pelo grupo)
-                         ↓
-Linux:   agent.env   →  AGENT_API_TOKEN=... (chmod 600, dono root)
-                         → systemd injeta como variável de ambiente
-Windows: registro    →  HKLM\...\Services\argus-agent\Environment
-                         → o serviço recebe AGENT_API_TOKEN em runtime
-```
-
-O agente lê `AGENT_API_TOKEN` da memória do processo. O token só existe em disco
-em um arquivo protegido (Linux) ou na chave de serviço do registro (Windows),
-nunca no `config.toml` que acompanha o projeto.
-
-Camadas adicionais:
-
-- **Conta dedicada sem login**: `argus-agent` (`nologin`) no Linux / Virtual
-  Service Account `NT SERVICE\argus-agent` no Windows. Não há senha para esquecer.
-- **Permissões restritas**: fila e config acessíveis apenas pelo serviço.
-- **Hardening do systemd**: `NoNewPrivileges`, `ProtectSystem=strict`,
-  `ProtectHome`, `PrivateTmp`.
-- **Token mascarado**: aparece como `argu****` em qualquer log ou traceback.
-
-> **Nota sobre o root (Linux):** o root sempre lê qualquer arquivo — `chown` não
-> protege contra um administrador, apenas contra outros usuários/serviços e
-> reduz o raio de impacto se o agente for comprometido. O token via env var do
-> systemd dificulta mesmo a leitura privilegiada (exige ler `/proc/<pid>/environ`
-> do processo ativo, em vez de abrir um arquivo).
-
----
-
-## Instalação — Linux
-
-Na pasta `agents/` (que contém `runner.py`, `core/`, etc.), com os arquivos do
-instalador disponíveis:
-
-```bash
-sudo bash install.sh
-```
-
-O script vai, em ordem:
-
-1. Verificar/instalar Python 3.11+
-2. Criar o usuário `argus-agent` (sem login)
-3. Copiar binários para `/opt/argus/agent-monitor/` (incluindo `core/`)
-4. Criar diretórios de dados com permissões corretas
-5. **Pedir a URL da API e o token** (o token é digitado oculto)
-6. Gerar `config.toml` **sem o token**
-7. Gravar o token em `/etc/argus/agent-monitor/agent.env` (chmod 600)
-8. Registrar o serviço systemd com `EnvironmentFile`
-9. **Validar a coleta com `--dry-run`** antes de iniciar
-10. Iniciar o serviço
-
-Para instalar sem iniciar (ex.: validar manualmente antes):
-
-```bash
-sudo bash install.sh --no-start
-```
-
----
-
-## Instalação — Windows
-
-Como **Administrador**, na pasta `agents\`:
-
-```bat
-install.bat
-```
-
-Equivalente ao Linux: cria o serviço com Virtual Service Account, grava o token
-como variável de ambiente do serviço (registro), restringe ACLs e inicia.
-
-```bat
-install.bat --no-start
-```
-
----
-
-## Validar antes de ativar o envio (dry-run)
-
-O modo `--dry-run` executa a coleta de todos os agentes e **imprime os payloads
-sem enviar nada** pela rede. Ideal para confirmar, num servidor de produção, que
-os agentes coletam corretamente antes de apontar para a API real.
-
-**Linux:**
-```bash
-sudo runuser -u argus-agent -- \
-  python3 /opt/argus/agent-monitor/runner.py \
-  --config /etc/argus/agent-monitor/config.toml --dry-run
-```
-
-**Windows:**
-```bat
-python "C:\Program Files\Argus\agent-monitor\runner.py" ^
-  --config "C:\ProgramData\Argus\agent-monitor\config.toml" --dry-run
-```
-
-- **Exit code 0** → todos os agentes coletaram sem erros.
-- **Exit code 1** → algum finding teve `status=error` (revise a saída; pode ser
-  esperado, ex.: falta de permissão de auditoria em ambiente restrito).
-
----
-
-## Rotacionar o token
-
-Sem reinstalar — basta atualizar o segredo e reiniciar o serviço.
-
-**Linux:**
-```bash
-sudo nano /etc/argus/agent-monitor/agent.env   # edite AGENT_API_TOKEN=...
-sudo systemctl restart argus-agent
-```
-
-**Windows:**
-```bat
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\argus-agent" ^
-  /v Environment /t REG_MULTI_SZ /d "AGENT_API_TOKEN=novo-token" /f
-sc stop argus-agent & sc start argus-agent
-```
-
----
-
-## Verificar permissões
-
-**Linux:**
-```bash
-ls -l /etc/argus/agent-monitor/agent.env      # -rw------- root root  (600)
-ls -l /etc/argus/agent-monitor/config.toml    # -rw-r----- root argus-agent (640)
-ls -ld /var/lib/argus/agent-monitor/queue     # drwx------ argus-agent (700)
-```
-
-**Windows:**
-```bat
-icacls "C:\ProgramData\Argus\agent-monitor"
-REM Deve listar apenas NT SERVICE\argus-agent, SYSTEM e Administrators
-```
+- **Token nunca no `config.toml`.** Fica em arquivo protegido, lido em runtime:
+  - Linux: `/etc/argus/agent-monitor/agent.env` (chmod 600, dono root), via systemd.
+  - Windows: `C:\ProgramData\Argus\agent-monitor\agent.token` (ACL só SYSTEM +
+    Administradores), lido pelo lançador da Tarefa Agendada.
+- **Conta de execução:**
+  - Linux: usuário `argus-agent` (nologin), com hardening do systemd
+    (`NoNewPrivileges`, `ProtectSystem=strict`).
+  - Windows: Tarefa Agendada como **SYSTEM** — privilegiada, mas necessária para ler o
+    log de Segurança; o token e os dados ficam restritos a SYSTEM/Administradores.
+- **HTTPS sempre** para as métricas (token e dados criptografados em trânsito).
 
 ---
 
@@ -165,35 +110,59 @@ REM Deve listar apenas NT SERVICE\argus-agent, SYSTEM e Administrators
 
 **Linux (systemd):**
 ```bash
-systemctl status argus-agent       # estado do serviço
-journalctl -u argus-agent -f       # logs ao vivo
-systemctl restart argus-agent      # reiniciar
+systemctl status argus-agent        # estado
+journalctl -u argus-agent -f        # logs ao vivo
+systemctl restart argus-agent       # reiniciar
 ```
 
-**Windows (sc.exe):**
-```bat
-sc query argus-agent
-type "C:\ProgramData\Argus\agent-monitor\logs\argus-agent.log"
-sc stop argus-agent & sc start argus-agent
+**Windows (PowerShell):**
+```powershell
+Get-ScheduledTask -TaskName argus-agent | Get-ScheduledTaskInfo   # estado/ultima exec.
+Get-Content 'C:\ProgramData\Argus\agent-monitor\logs\agent-monitor.log' -Tail 30
+Stop-ScheduledTask -TaskName argus-agent; Start-ScheduledTask -TaskName argus-agent
 ```
 
----
+### Rotacionar o token (sem reinstalar)
 
-## Desinstalar
+**Linux:** edite `/etc/argus/agent-monitor/agent.env` e `systemctl restart argus-agent`.
+
+**Windows:**
+```powershell
+Set-Content 'C:\ProgramData\Argus\agent-monitor\agent.token' -Value 'novo-token' -NoNewline
+Stop-ScheduledTask -TaskName argus-agent; Start-ScheduledTask -TaskName argus-agent
+```
+
+### Desinstalar
 
 **Linux:**
 ```bash
-sudo systemctl stop argus-agent
-sudo systemctl disable argus-agent
-sudo rm /etc/systemd/system/argus-agent.service
-sudo systemctl daemon-reload
-# Opcional: remover dados e usuário
+sudo systemctl stop argus-agent && sudo systemctl disable argus-agent
+sudo rm /etc/systemd/system/argus-agent.service && sudo systemctl daemon-reload
 sudo rm -rf /opt/argus /etc/argus /var/lib/argus /var/log/argus
 sudo userdel argus-agent
 ```
 
-**Windows:**
-```bat
-sc stop argus-agent & sc delete argus-agent
-rmdir /s /q "C:\Program Files\Argus" "C:\ProgramData\Argus"
+**Windows (PowerShell admin):**
+```powershell
+Unregister-ScheduledTask -TaskName argus-agent -Confirm:$false
+Remove-Item -Recurse -Force 'C:\Program Files\Argus','C:\ProgramData\Argus'
 ```
+
+---
+
+## Validar a coleta sem enviar (dry-run)
+
+O instalador já roda um `--dry-run` ao final. Para rodar manualmente depois:
+
+**Linux:**
+```bash
+sudo runuser -u argus-agent -- python3 /opt/argus/agent-monitor/runner.py \
+  --config /etc/argus/agent-monitor/config.toml --dry-run
+```
+**Windows:**
+```powershell
+& "C:\Program Files\Python312\python.exe" "C:\Program Files\Argus\agent-monitor\runner.py" `
+  --config "C:\ProgramData\Argus\agent-monitor\config.toml" --dry-run
+```
+Exit `0` = tudo coletado; exit `1` = algum finding com `status=error` (pode ser
+esperado, ex.: falta de permissão de auditoria).
