@@ -51,6 +51,15 @@ export function ServerConfig() {
     cpu_warn: 75, cpu_crit: 90, mem_warn: 80, mem_crit: 90, disk_warn: 80, disk_crit: 90,
   });
   const [opEnabled, setOpEnabled] = useState(true);
+  // Backup
+  const [bkEnabled, setBkEnabled] = useState(true);
+  const [paths, setPaths] = useState<string[]>([]);
+  const [extensions, setExtensions] = useState<string[]>([]);
+  const [slaHours, setSlaHours] = useState(24);
+  const [minSizeMb, setMinSizeMb] = useState(5);
+  // Acesso / Logs
+  const [acessoEnabled, setAcessoEnabled] = useState(true);
+  const [logsEnabled, setLogsEnabled] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -73,6 +82,14 @@ export function ServerConfig() {
         mem_warn: op.mem_warn ?? 80, mem_crit: op.mem_crit ?? 90,
         disk_warn: op.disk_warn ?? 80, disk_crit: op.disk_crit ?? 90,
       });
+      const bk = c.backup ?? {};
+      setBkEnabled(bk.enabled ?? true);
+      setPaths(bk.paths ?? []);
+      setExtensions(bk.extensions ?? []);
+      setSlaHours(bk.sla_hours ?? 24);
+      setMinSizeMb(bk.min_size_mb ?? 5);
+      setAcessoEnabled(c.acesso?.enabled ?? true);
+      setLogsEnabled(c.logs?.enabled ?? true);
     }
   }, [cfg]);
 
@@ -89,6 +106,16 @@ export function ServerConfig() {
           critical_services: services,
           ...th,
         },
+        backup: {
+          ...(base.backup ?? {}),
+          enabled: bkEnabled,
+          paths,
+          extensions,
+          sla_hours: slaHours,
+          min_size_mb: minSizeMb,
+        },
+        acesso: { ...(base.acesso ?? {}), enabled: acessoEnabled },
+        logs: { ...(base.logs ?? {}), enabled: logsEnabled },
       };
       return api(`/api/v1/servers/${serverId}/config`, {
         method: "PUT",
@@ -234,6 +261,80 @@ export function ServerConfig() {
                 </div>
               ))}
             </div>
+          </Section>
+
+          <Section title="Backup">
+            <label className="mb-4 flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={bkEnabled}
+                onChange={(e) => setBkEnabled(e.target.checked)}
+                className="h-4 w-4 accent-status-ok"
+              />
+              Coletar pilar backup
+            </label>
+
+            <TagInput
+              label="Caminhos monitorados"
+              values={paths}
+              onChange={setPaths}
+              placeholder="ex.: D:\\Backups"
+              hint="Pastas onde o agente procura os arquivos de backup neste servidor."
+            />
+
+            <div className="mt-5">
+              <TagInput
+                label="Extensões aceitas"
+                values={extensions}
+                onChange={setExtensions}
+                placeholder="ex.: .zip"
+                hint="Extensões consideradas como backup (ex.: .zip, .tar.gz, .dump)."
+              />
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <FormField
+                label="SLA — idade máxima (horas)"
+                type="number" min={1}
+                value={slaHours}
+                onChange={(v) => setSlaHours(numOr(v, 24))}
+                hint="Backup mais antigo que isso vira CRÍTICO (SLA estourado)."
+              />
+              <FormField
+                label="Tamanho mínimo (MB)"
+                type="number" min={1}
+                value={minSizeMb}
+                onChange={(v) => setMinSizeMb(numOr(v, 5))}
+                hint="Backup menor que isso é suspeito (possível falha)."
+              />
+            </div>
+          </Section>
+
+          <Section title="Acesso e Logs">
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={acessoEnabled}
+                  onChange={(e) => setAcessoEnabled(e.target.checked)}
+                  className="h-4 w-4 accent-status-ok"
+                />
+                Coletar pilar acesso (logins, sudo, SSH/auditpol)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={logsEnabled}
+                  onChange={(e) => setLogsEnabled(e.target.checked)}
+                  className="h-4 w-4 accent-status-ok"
+                />
+                Coletar pilar logs (integridade/retenção de logs)
+              </label>
+            </div>
+            <p className="mt-3 text-xs text-slate-600">
+              Estes pilares coletam achados (findings) sem parâmetros adicionais por
+              enquanto — aqui você só liga/desliga a coleta deles neste servidor.
+            </p>
           </Section>
 
           <div className="flex items-center justify-between">
