@@ -36,6 +36,11 @@ logger = logging.getLogger(__name__)
 # Utilitários internos
 # ---------------------------------------------------------------------------
 
+# Parametros vindos da config por servidor (populados por collect() a cada ciclo).
+# Defaults preservam o comportamento historico se a config nao trouxer os campos.
+_PARAMS = {"failed_login_threshold": 10, "alert_on_account_change": True}
+
+
 def finding(item: str, value, status: str, detail: str = "") -> dict:
     """Achado padronizado do pilar 'acesso' (wrapper de core.sysutils.finding)."""
     return _finding("acesso", item, value, status, detail)
@@ -54,7 +59,7 @@ def _linux_failed_logins() -> list:
         count = int(stdout.strip()) if rc == 0 and stdout.strip().isdigit() else 0
         results.append(finding(
             "failed_logins_count", count,
-            "warning" if count > 10 else "ok",
+            "warning" if count > _PARAMS["failed_login_threshold"] else "ok",
             f"{count} tentativas de login com senha falhas em {log_file}",
         ))
         stdout, _, rc = run_cmd(["grep", "Failed password", log_file])
@@ -253,7 +258,7 @@ def _windows_failed_logins() -> dict:
     return finding(
         "windows_failed_logins_4625",
         {"count": count, "top_source_ips": top},
-        "warning" if count > 10 else "ok",
+        "warning" if count > _PARAMS["failed_login_threshold"] else "ok",
         f"{count} falhas de logon (EID 4625)",
     )
 
@@ -294,10 +299,11 @@ def _windows_account_changes() -> dict:
             by_event_id[eid] += 1
 
     count = len(events)
+    alert = _PARAMS["alert_on_account_change"] and count > 0
     return finding(
         "windows_account_changes",
         {"count": count, "by_event_id": by_event_id},
-        "warning" if count > 0 else "ok",
+        "warning" if alert else "ok",
         f"{count} alterações de conta (EID 4720/4722/4732)",
     )
 
@@ -383,6 +389,10 @@ def collect(config: AgentConfig) -> dict:
     target_os = detect_os()
     timestamp = now_iso()
     start = datetime.datetime.now(datetime.timezone.utc)
+
+    # Aplica os parametros da config por servidor (thresholds de acesso)
+    _PARAMS["failed_login_threshold"] = config.acesso.failed_login_threshold
+    _PARAMS["alert_on_account_change"] = config.acesso.alert_on_account_change
 
     findings = _collect_findings(target_os)
 

@@ -46,12 +46,27 @@ export interface BackupConfig {
   extensions?: string[];
 }
 
+export interface AcessoConfig {
+  enabled?: boolean;
+  failed_login_threshold?: number;
+  alert_on_account_change?: boolean;
+  finding_overrides?: Record<string, string>;
+}
+
+export interface LogsConfig {
+  enabled?: boolean;
+  max_log_age_hours?: number;
+  min_retention_rotations?: number;
+  min_channel_size_mb?: number;
+  finding_overrides?: Record<string, string>;
+}
+
 export interface ServerConfigBlob {
   interval_seconds?: number;
   operacional?: OperacionalConfig;
   backup?: BackupConfig;
-  acesso?: { enabled?: boolean };
-  logs?: { enabled?: boolean };
+  acesso?: AcessoConfig;
+  logs?: LogsConfig;
 }
 
 export interface ServerConfigOut {

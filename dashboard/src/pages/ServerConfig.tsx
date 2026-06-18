@@ -59,7 +59,12 @@ export function ServerConfig() {
   const [minSizeMb, setMinSizeMb] = useState(5);
   // Acesso / Logs
   const [acessoEnabled, setAcessoEnabled] = useState(true);
+  const [failedLoginTh, setFailedLoginTh] = useState(10);
+  const [alertAccountChange, setAlertAccountChange] = useState(true);
   const [logsEnabled, setLogsEnabled] = useState(true);
+  const [maxLogAge, setMaxLogAge] = useState(24);
+  const [minRetention, setMinRetention] = useState(90);
+  const [minChannelMb, setMinChannelMb] = useState(256);
   const [showDelete, setShowDelete] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -88,8 +93,15 @@ export function ServerConfig() {
       setExtensions(bk.extensions ?? []);
       setSlaHours(bk.sla_hours ?? 24);
       setMinSizeMb(bk.min_size_mb ?? 5);
-      setAcessoEnabled(c.acesso?.enabled ?? true);
-      setLogsEnabled(c.logs?.enabled ?? true);
+      const ac = c.acesso ?? {};
+      setAcessoEnabled(ac.enabled ?? true);
+      setFailedLoginTh(ac.failed_login_threshold ?? 10);
+      setAlertAccountChange(ac.alert_on_account_change ?? true);
+      const lg = c.logs ?? {};
+      setLogsEnabled(lg.enabled ?? true);
+      setMaxLogAge(lg.max_log_age_hours ?? 24);
+      setMinRetention(lg.min_retention_rotations ?? 90);
+      setMinChannelMb(lg.min_channel_size_mb ?? 256);
     }
   }, [cfg]);
 
@@ -114,8 +126,19 @@ export function ServerConfig() {
           sla_hours: slaHours,
           min_size_mb: minSizeMb,
         },
-        acesso: { ...(base.acesso ?? {}), enabled: acessoEnabled },
-        logs: { ...(base.logs ?? {}), enabled: logsEnabled },
+        acesso: {
+          ...(base.acesso ?? {}),
+          enabled: acessoEnabled,
+          failed_login_threshold: failedLoginTh,
+          alert_on_account_change: alertAccountChange,
+        },
+        logs: {
+          ...(base.logs ?? {}),
+          enabled: logsEnabled,
+          max_log_age_hours: maxLogAge,
+          min_retention_rotations: minRetention,
+          min_channel_size_mb: minChannelMb,
+        },
       };
       return api(`/api/v1/servers/${serverId}/config`, {
         method: "PUT",
@@ -310,31 +333,73 @@ export function ServerConfig() {
             </div>
           </Section>
 
-          <Section title="Acesso e Logs">
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm text-slate-200">
+          <Section title="Acesso">
+            <label className="mb-4 flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={acessoEnabled}
+                onChange={(e) => setAcessoEnabled(e.target.checked)}
+                className="h-4 w-4 accent-status-ok"
+              />
+              Coletar pilar acesso (logins, sudo, SSH/auditpol)
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                label="Limite de logins falhos"
+                type="number" min={1}
+                value={failedLoginTh}
+                onChange={(v) => setFailedLoginTh(numOr(v, 10))}
+                hint="Acima disso, vira AVISO."
+              />
+              <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-200">
                 <input
                   type="checkbox"
-                  checked={acessoEnabled}
-                  onChange={(e) => setAcessoEnabled(e.target.checked)}
+                  checked={alertAccountChange}
+                  onChange={(e) => setAlertAccountChange(e.target.checked)}
                   className="h-4 w-4 accent-status-ok"
                 />
-                Coletar pilar acesso (logins, sudo, SSH/auditpol)
-              </label>
-              <label className="flex items-center gap-2 text-sm text-slate-200">
-                <input
-                  type="checkbox"
-                  checked={logsEnabled}
-                  onChange={(e) => setLogsEnabled(e.target.checked)}
-                  className="h-4 w-4 accent-status-ok"
-                />
-                Coletar pilar logs (integridade/retenção de logs)
+                Alertar em mudanças de conta
               </label>
             </div>
             <p className="mt-3 text-xs text-slate-600">
-              Estes pilares coletam achados (findings) sem parâmetros adicionais por
-              enquanto — aqui você só liga/desliga a coleta deles neste servidor.
+              Achados específicos (ex.: SSH, auditpol) você silencia direto na tabela
+              de findings do servidor (botão "Ignorar").
             </p>
+          </Section>
+
+          <Section title="Logs">
+            <label className="mb-4 flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={logsEnabled}
+                onChange={(e) => setLogsEnabled(e.target.checked)}
+                className="h-4 w-4 accent-status-ok"
+              />
+              Coletar pilar logs (integridade/retenção de logs)
+            </label>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <FormField
+                label="Idade máx. do log (h)"
+                type="number" min={1}
+                value={maxLogAge}
+                onChange={(v) => setMaxLogAge(numOr(v, 24))}
+                hint="Sem evento há mais que isso = AVISO."
+              />
+              <FormField
+                label="Retenção mínima (rotações)"
+                type="number" min={1}
+                value={minRetention}
+                onChange={(v) => setMinRetention(numOr(v, 90))}
+                hint="logrotate abaixo disso = AVISO."
+              />
+              <FormField
+                label="Tamanho mín. de canal (MB)"
+                type="number" min={1}
+                value={minChannelMb}
+                onChange={(v) => setMinChannelMb(numOr(v, 256))}
+                hint="Canal de log Windows menor = AVISO."
+              />
+            </div>
           </Section>
 
           <div className="flex items-center justify-between">

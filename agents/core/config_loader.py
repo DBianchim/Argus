@@ -127,12 +127,17 @@ class BackupConfig:
 class AcessoConfig:
     """Parametros do agente de acesso."""
     enabled: bool
+    failed_login_threshold:  int = 10     # logins falhos acima disso -> warning
+    alert_on_account_change: bool = True  # alertar em qualquer mudanca de conta
 
 
 @dataclass
 class LogsConfig:
     """Parametros do agente de logs."""
     enabled: bool
+    max_log_age_hours:       int = 24     # log sem evento ha mais que isso -> warning
+    min_retention_rotations: int = 90     # retencao do logrotate abaixo disso -> warning
+    min_channel_size_mb:     int = 256    # canal de log Windows menor -> warning
 
 
 @dataclass
@@ -404,9 +409,14 @@ def _build_config(raw: dict) -> AgentConfig:
         ),
         acesso=AcessoConfig(
             enabled=bool(ac.get('enabled', False)),
+            failed_login_threshold=int(ac.get('failed_login_threshold', 10)),
+            alert_on_account_change=bool(ac.get('alert_on_account_change', True)),
         ),
         logs=LogsConfig(
             enabled=bool(lg.get('enabled', False)),
+            max_log_age_hours=int(lg.get('max_log_age_hours', 24)),
+            min_retention_rotations=int(lg.get('min_retention_rotations', 90)),
+            min_channel_size_mb=int(lg.get('min_channel_size_mb', 256)),
         ),
     )
 
@@ -499,9 +509,20 @@ def apply_central_config(config: AgentConfig, central: dict) -> None:
     ac = central.get('acesso') or {}
     if 'enabled' in ac:
         config.acesso.enabled = bool(ac['enabled'])
+    if isinstance(ac.get('failed_login_threshold'), int):
+        config.acesso.failed_login_threshold = ac['failed_login_threshold']
+    if 'alert_on_account_change' in ac:
+        config.acesso.alert_on_account_change = bool(ac['alert_on_account_change'])
+
     lg = central.get('logs') or {}
     if 'enabled' in lg:
         config.logs.enabled = bool(lg['enabled'])
+    if isinstance(lg.get('max_log_age_hours'), int):
+        config.logs.max_log_age_hours = lg['max_log_age_hours']
+    if isinstance(lg.get('min_retention_rotations'), int):
+        config.logs.min_retention_rotations = lg['min_retention_rotations']
+    if isinstance(lg.get('min_channel_size_mb'), int):
+        config.logs.min_channel_size_mb = lg['min_channel_size_mb']
 
 
 # ── execucao direta (validacao rapida) ────────────────────────────────────────

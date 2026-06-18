@@ -36,6 +36,10 @@ logger = logging.getLogger(__name__)
 # Utilitários internos
 # ---------------------------------------------------------------------------
 
+# Parametros vindos da config por servidor (populados por collect() a cada ciclo).
+_PARAMS = {"max_log_age_hours": 24, "min_retention_rotations": 90, "min_channel_size_mb": 256}
+
+
 def finding(item: str, value, status: str, detail: str = "") -> dict:
     """Achado padronizado do pilar 'logs' (wrapper de core.sysutils.finding)."""
     return _finding("logs", item, value, status, detail)
@@ -93,7 +97,7 @@ def _linux_log_files() -> list:
             f"log_file_{p.name}",
             {"path": lf, "size_mb": round(size_mb, 2),
              "last_modified_hours_ago": round(age_hours, 1)},
-            "warning" if age_hours > 24 else "ok",
+            "warning" if age_hours > _PARAMS["max_log_age_hours"] else "ok",
             f"{lf} | {size_mb:.1f} MB | último evento há {age_hours:.1f}h",
         ))
     return results
@@ -110,10 +114,11 @@ def _linux_logrotate() -> list:
         if rotate_line:
             try:
                 days = int(rotate_line.split()[-1])
+                _min = _PARAMS["min_retention_rotations"]
                 results.append(finding(
                     "logrotate_retention_days", days,
-                    "ok" if days >= 90 else "warning",
-                    f"Retenção configurada: {days} rotações (mínimo recomendado: 90)",
+                    "ok" if days >= _min else "warning",
+                    f"Retenção configurada: {days} rotações (mínimo recomendado: {_min})",
                 ))
             except Exception:
                 pass
@@ -194,14 +199,15 @@ def _windows_log_channel_sizes() -> list:
                 channels = [channels]
             for ch in channels:
                 max_mb = (ch.get("MaximumSizeInBytes") or 0) / (1024 * 1024)
+                _min = _PARAMS["min_channel_size_mb"]
                 results.append(finding(
                     f"windows_channel_{ch.get('LogName', 'unknown')}_size_mb",
                     {"max_mb": round(max_mb, 1),
                      "records": ch.get("RecordCount"),
                      "enabled": ch.get("IsEnabled")},
-                    "warning" if max_mb < 256 else "ok",
+                    "warning" if max_mb < _min else "ok",
                     f"Canal {ch.get('LogName')}: {max_mb:.0f} MB "
-                    f"(mínimo recomendado: 256 MB)",
+                    f"(mínimo recomendado: {_min} MB)",
                 ))
         except Exception as exc:
             results.append(finding("windows_channel_sizes", None, "error", str(exc)))
@@ -325,6 +331,11 @@ def collect(config: AgentConfig) -> dict:
     target_os = detect_os()
     timestamp = now_iso()
     start = datetime.datetime.now(datetime.timezone.utc)
+
+    # Aplica os parametros da config por servidor (thresholds de logs)
+    _PARAMS["max_log_age_hours"] = config.logs.max_log_age_hours
+    _PARAMS["min_retention_rotations"] = config.logs.min_retention_rotations
+    _PARAMS["min_channel_size_mb"] = config.logs.min_channel_size_mb
 
     findings = _collect_findings(target_os)
 

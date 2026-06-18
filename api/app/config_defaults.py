@@ -53,8 +53,19 @@ def default_config(os_family: str) -> dict[str, Any]:
         },
         # finding_overrides: {item: "ignore"|"info"} silencia falsos positivos por
         # servidor (preenchido pela UI ao marcar um achado como ignorado).
-        "acesso": {"enabled": True, "finding_overrides": {}},
-        "logs": {"enabled": True, "finding_overrides": {}},
+        "acesso": {
+            "enabled": True,
+            "failed_login_threshold": 10,
+            "alert_on_account_change": True,
+            "finding_overrides": {},
+        },
+        "logs": {
+            "enabled": True,
+            "max_log_age_hours": 24,
+            "min_retention_rotations": 90,
+            "min_channel_size_mb": 256,
+            "finding_overrides": {},
+        },
     }
 
 
