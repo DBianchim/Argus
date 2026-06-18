@@ -15,6 +15,50 @@ export interface LoginOut {
   user: UserOut;
 }
 
+export interface ServerOut {
+  id: number;
+  hostname: string;
+  os_family: "windows" | "linux";
+  display_name: string | null;
+  is_active: boolean;
+  created_at: string;
+  last_seen_at: string | null;
+}
+
+// Config do agente gerenciada pela central (api/app/config_defaults.py).
+// Campos opcionais: o backend tolera blobs parciais.
+export interface OperacionalConfig {
+  enabled?: boolean;
+  critical_services?: string[];
+  cpu_warn?: number;
+  cpu_crit?: number;
+  mem_warn?: number;
+  mem_crit?: number;
+  disk_warn?: number;
+  disk_crit?: number;
+}
+
+export interface BackupConfig {
+  enabled?: boolean;
+  paths?: string[];
+  sla_hours?: number;
+  min_size_mb?: number;
+  extensions?: string[];
+}
+
+export interface ServerConfigBlob {
+  interval_seconds?: number;
+  operacional?: OperacionalConfig;
+  backup?: BackupConfig;
+  acesso?: { enabled?: boolean };
+  logs?: { enabled?: boolean };
+}
+
+export interface ServerConfigOut {
+  config: ServerConfigBlob;
+  config_version: number;
+}
+
 export interface AlertOut {
   severity: "warn" | "crit";
   pilar: string;

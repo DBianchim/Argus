@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Settings } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -322,6 +322,12 @@ export function ServerDetail() {
             coletado {relativeTime(health.last_seen_at)}
             {health.agent_version && ` · agente ${health.agent_version}`}
           </span>
+          <Link
+            to={`/servers/${serverId}/config`}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-status-ok/60 hover:text-slate-100"
+          >
+            <Settings className="h-3.5 w-3.5" aria-hidden /> Configurar
+          </Link>
         </div>
 
         {health.alerts.length > 0 && (

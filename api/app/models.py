@@ -16,6 +16,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     func,
 )
@@ -52,6 +53,14 @@ class Server(Base):
     last_status:            Mapped[str | None] = mapped_column(String(20), nullable=True)
     last_status_changed_at: Mapped[datetime.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+
+    # Configuração do agente, gerenciada pela central (serviços críticos, caminhos
+    # de backup, thresholds, intervalo, pilares ligados). O agente busca esta config
+    # e a re-sincroniza quando config_version muda (sinalizado na resposta do ingest).
+    config:         Mapped[dict | None] = mapped_column(_JSON, nullable=True)
+    config_version: Mapped[int] = mapped_column(
+        Integer, default=1, server_default="1", nullable=False
     )
 
     metrics: Mapped[list["Metric"]] = relationship(

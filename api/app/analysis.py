@@ -15,6 +15,8 @@ import datetime
 from dataclasses import dataclass, field
 from enum import Enum
 
+from .config_defaults import op_thresholds
+
 
 # ── status ────────────────────────────────────────────────────────────────────
 
@@ -56,9 +58,10 @@ class ServerHealth:
     alerts:         list[Alert] = field(default_factory=list)
 
 
-# ── limiares da central ───────────────────────────────────────────────────────
-# A central define seus próprios limiares (os thresholds do config.toml dos
-# agentes não viajam no payload — e a análise é responsabilidade daqui).
+# ── limiares ────────────────────────────────────────────────────────────────
+# Os limiares vêm da config POR SERVIDOR (gerenciada na central). Os valores
+# abaixo são apenas o fallback quando a config está ausente/parcial — a fonte da
+# verdade é config_defaults.op_thresholds(server.config).
 
 CPU_WARN,  CPU_CRIT  = 75.0, 90.0
 MEM_WARN,  MEM_CRIT  = 80.0, 90.0
@@ -80,9 +83,10 @@ def _pct_status(value, warn: float, crit: float) -> Status:
 
 # ── regras por pilar ──────────────────────────────────────────────────────────
 
-def evaluate_operacional(metrics: dict) -> tuple[Status, list[Alert]]:
+def evaluate_operacional(metrics: dict, config: dict | None = None) -> tuple[Status, list[Alert]]:
     statuses: list[Status] = [Status.OK]
     alerts: list[Alert] = []
+    th = op_thresholds(config)  # limiares por servidor (fallback p/ defaults)
 
     def alert(severity: str, item: str, title: str, detail: str = ""):
         alerts.append(Alert(severity, "operacional", item, title, detail))
@@ -92,29 +96,29 @@ def evaluate_operacional(metrics: dict) -> tuple[Status, list[Alert]]:
         statuses.append(Status.WARN)
         alert("warn", "cpu", "Falha na coleta de CPU", str(cpu.get("error", "")))
     else:
-        s = _pct_status(cpu.get("usage_pct"), CPU_WARN, CPU_CRIT)
+        s = _pct_status(cpu.get("usage_pct"), th["cpu_warn"], th["cpu_crit"])
         statuses.append(s if s != Status.UNKNOWN else Status.OK)
         if s in (Status.WARN, Status.CRIT):
             alert(s.value, "cpu", f"CPU em {cpu.get('usage_pct')}%",
-                  f"Limite: aviso ≥{CPU_WARN:.0f}%, crítico ≥{CPU_CRIT:.0f}%")
+                  f"Limite: aviso ≥{th['cpu_warn']:.0f}%, crítico ≥{th['cpu_crit']:.0f}%")
 
     mem = metrics.get("memory") or {}
     if "error" in mem:
         statuses.append(Status.WARN)
         alert("warn", "memory", "Falha na coleta de memória", str(mem.get("error", "")))
     else:
-        s = _pct_status(mem.get("usage_pct"), MEM_WARN, MEM_CRIT)
+        s = _pct_status(mem.get("usage_pct"), th["mem_warn"], th["mem_crit"])
         statuses.append(s if s != Status.UNKNOWN else Status.OK)
         if s in (Status.WARN, Status.CRIT):
             alert(s.value, "memory", f"Memória em {mem.get('usage_pct')}%",
-                  f"Limite: aviso ≥{MEM_WARN:.0f}%, crítico ≥{MEM_CRIT:.0f}%")
+                  f"Limite: aviso ≥{th['mem_warn']:.0f}%, crítico ≥{th['mem_crit']:.0f}%")
 
     for disk in metrics.get("disk") or []:
-        s = _pct_status(disk.get("usage_pct"), DISK_WARN, DISK_CRIT)
+        s = _pct_status(disk.get("usage_pct"), th["disk_warn"], th["disk_crit"])
         if s in (Status.WARN, Status.CRIT):
             statuses.append(s)
             alert(s.value, "disk", f"Disco {disk.get('mount', '?')} em {disk.get('usage_pct')}%",
-                  f"Limite: aviso ≥{DISK_WARN:.0f}%, crítico ≥{DISK_CRIT:.0f}%")
+                  f"Limite: aviso ≥{th['disk_warn']:.0f}%, crítico ≥{th['disk_crit']:.0f}%")
 
     for svc in metrics.get("services") or []:
         if str(svc.get("status", "")).lower() in _BAD_SERVICE_STATES:
@@ -184,9 +188,9 @@ def evaluate_findings(pilar: str, metrics: dict) -> tuple[Status, list[Alert]]:
     return worst(statuses), alerts
 
 
-def evaluate_pilar(pilar: str, metrics: dict) -> tuple[Status, list[Alert]]:
+def evaluate_pilar(pilar: str, metrics: dict, config: dict | None = None) -> tuple[Status, list[Alert]]:
     if pilar == "operacional":
-        return evaluate_operacional(metrics)
+        return evaluate_operacional(metrics, config)
     if pilar == "backup":
         return evaluate_backup(metrics)
     if pilar in ("acesso", "logs"):
@@ -220,6 +224,7 @@ def evaluate_server(
     last_seen_at: datetime.datetime | None,
     offline_after_seconds: int = 600,
     now: datetime.datetime | None = None,
+    config: dict | None = None,
 ) -> ServerHealth:
     """
     Avalia um servidor a partir do último payload de cada pilar.
@@ -238,7 +243,7 @@ def evaluate_server(
 
     for pilar in PILARES:
         if pilar in pilar_metrics:
-            status, pilar_alerts = evaluate_pilar(pilar, pilar_metrics[pilar])
+            status, pilar_alerts = evaluate_pilar(pilar, pilar_metrics[pilar], config)
             pilar_statuses[pilar] = status
             alerts.extend(pilar_alerts)
         else:

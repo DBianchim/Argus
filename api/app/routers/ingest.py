@@ -71,4 +71,10 @@ async def ingest(
         logger.warning("Falha ao avaliar notificacao | pilar=%s | erro=%s",
                        envelope.pilar, type(exc).__name__)
 
-    return IngestResponse(status="accepted", metric_id=metric.id)
+    # config_version sinaliza ao agente se a config dele mudou (ele rebaixa via
+    # GET /agent-config quando a versão diferir da que tem em cache).
+    return IngestResponse(
+        status="accepted",
+        metric_id=metric.id,
+        config_version=server.config_version,
+    )

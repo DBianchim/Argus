@@ -33,9 +33,10 @@ import agent_backup
 import agent_operacional
 import agent_acesso
 import agent_logs
+from core import central_config
 from core import queue_local
 from core import sender
-from core.config_loader import AgentConfig
+from core.config_loader import AgentConfig, apply_central_config
 from core.sender import SendStatus
 
 logger = logging.getLogger(__name__)
@@ -89,9 +90,12 @@ def _run_agent(name: str, collect_fn: Callable, config: AgentConfig) -> dict | N
         return None
 
 
-def _send_agent_payload(payload: dict, config: AgentConfig) -> None:
+def _send_agent_payload(payload: dict, config: AgentConfig) -> int | None:
     """
     Envia o payload de um agente usando sender com fila local como fallback.
+
+    Returns:
+        O config_version informado pela central na resposta (200), ou None.
     """
     queue_fn = partial(queue_local.enqueue, config=config)
 
@@ -118,6 +122,8 @@ def _send_agent_payload(payload: dict, config: AgentConfig) -> None:
             'Payload descartado | pilar=%s | http=%s | detalhe=%s',
             pilar, result.http_code, result.detail
         )
+
+    return result.config_version
 
 
 # ── ciclo principal ───────────────────────────────────────────────────────────
@@ -155,7 +161,7 @@ def _build_agent_list(config: AgentConfig) -> list[tuple[str, Callable]]:
     return agents
 
 
-def _run_cycle(agents: list[tuple[str, Callable]], config: AgentConfig) -> None:
+def _run_cycle(agents: list[tuple[str, Callable]], config: AgentConfig) -> int | None:
     """
     Executa um ciclo completo de monitoramento.
 
@@ -163,6 +169,9 @@ def _run_cycle(agents: list[tuple[str, Callable]], config: AgentConfig) -> None:
         1. Flush da fila local (reenvio de pendencias)
         2. Coleta de cada agente habilitado
         3. Envio de cada payload coletado
+
+    Returns:
+        O config_version mais recente visto nas respostas do ingest (ou None).
     """
     pending = queue_local.queue_size(config)
     if pending > 0:
@@ -171,6 +180,7 @@ def _run_cycle(agents: list[tuple[str, Callable]], config: AgentConfig) -> None:
         enviados, falhas = queue_local.flush_queue(config, send_fn)
         logger.info('Flush concluido | enviados=%d | falhas=%d', enviados, falhas)
 
+    seen_version: int | None = None
     for name, collect_fn in agents:
         payload = _run_agent(name, collect_fn, config)
 
@@ -178,7 +188,35 @@ def _run_cycle(agents: list[tuple[str, Callable]], config: AgentConfig) -> None:
             logger.warning('Ciclo ignorado para agente=%s — coleta retornou vazio', name)
             continue
 
-        _send_agent_payload(payload, config)
+        version = _send_agent_payload(payload, config)
+        if version is not None:
+            seen_version = version
+
+    return seen_version
+
+
+# ── sincronizacao de config com a central ─────────────────────────────────────
+
+def _sync_from_central(config: AgentConfig) -> int | None:
+    """
+    Busca a config na central e aplica. Em falha, tenta o cache em disco.
+    Retorna a versao aplicada (ou None se nada foi aplicado).
+    """
+    central, version = central_config.fetch_config(config)
+    if central is not None:
+        apply_central_config(config, central)
+        central_config.save_cache(config, central, version)
+        logger.info('Config aplicada da central | versao=%s', version)
+        return version
+    # Central indisponivel: usa o cache, se houver
+    cached, cached_version = central_config.load_cache(config)
+    if cached is not None:
+        apply_central_config(config, cached)
+        logger.info('Central indisponivel — config aplicada do cache | versao=%s',
+                    cached_version)
+        return cached_version
+    logger.info('Sem config da central nem cache — usando config.toml local')
+    return None
 
 
 # ── funcao publica ────────────────────────────────────────────────────────────
@@ -190,20 +228,27 @@ def run(config: AgentConfig) -> None:
     Esta e a unica funcao que o runner.py deve chamar.
     O loop executa indefinidamente ate receber SIGTERM ou SIGINT.
 
+    A config e gerenciada pela central: buscamos no inicio e re-sincronizamos
+    quando a resposta do ingest indica um config_version novo (inclui o intervalo).
+
     Args:
-        config: Objeto AgentConfig carregado e validado pelo runner.py.
+        config: Objeto AgentConfig carregado e validado pelo runner.py (bootstrap).
     """
     shutdown = _ShutdownHandler()
+
+    # Sync inicial: a central manda; cai para cache/toml se ela estiver fora.
+    current_version = _sync_from_central(config)
+
     agents   = _build_agent_list(config)
     interval = config.schedule.interval_seconds
 
     if not agents:
-        logger.error('Nenhum agente habilitado no config.toml — encerrando')
+        logger.error('Nenhum agente habilitado — encerrando')
         return
 
     logger.info(
-        'Scheduler iniciado | agentes=%s | intervalo=%ds',
-        [name for name, _ in agents], interval
+        'Scheduler iniciado | agentes=%s | intervalo=%ds | config_version=%s',
+        [name for name, _ in agents], interval, current_version
     )
 
     cycle = 0
@@ -215,12 +260,32 @@ def run(config: AgentConfig) -> None:
         logger.info('Iniciando ciclo #%d', cycle)
 
         try:
-            _run_cycle(agents, config)
+            seen_version = _run_cycle(agents, config)
         except Exception as e:
+            seen_version = None
             logger.critical(
                 'Erro inesperado no ciclo #%d | erro=%s',
                 cycle, e, exc_info=True
             )
+
+        # A central sinalizou config nova? Rebaixa, aplica e atualiza intervalo/agentes.
+        if seen_version is not None and seen_version != current_version:
+            logger.info('Config mudou na central | versao %s -> %s — atualizando',
+                        current_version, seen_version)
+            central, version = central_config.fetch_config(config)
+            if central is not None:
+                apply_central_config(config, central)
+                central_config.save_cache(config, central, version)
+                current_version = version
+                agents   = _build_agent_list(config)
+                interval = config.schedule.interval_seconds
+                logger.info(
+                    'Config aplicada | versao=%s | intervalo=%ds | agentes=%s',
+                    current_version, interval, [name for name, _ in agents]
+                )
+                if not agents:
+                    logger.error('Config desabilitou todos os agentes — encerrando')
+                    return
 
         elapsed  = time.monotonic() - cycle_start
         wait     = max(0.0, interval - elapsed)

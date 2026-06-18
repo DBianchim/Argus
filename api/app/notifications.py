@@ -131,7 +131,7 @@ async def evaluate_and_notify(
     """
     old = Status(server.last_status) if server.last_status else None
     health = evaluate_server(pilar_metrics, server.last_seen_at,
-                             offline_after_seconds, now)
+                             offline_after_seconds, now, config=server.config)
     await record_transition(session, server, old, health.status, health)
     await session.commit()
     return health

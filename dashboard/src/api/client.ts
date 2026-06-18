@@ -45,7 +45,12 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     throw new Error(`Erro ${response.status}`);
   }
-  return response.json() as Promise<T>;
+  // 204 (ex.: DELETE) e corpos vazios não têm JSON para parsear.
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export async function login(username: string, password: string): Promise<LoginOut> {

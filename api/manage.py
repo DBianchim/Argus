@@ -24,6 +24,7 @@ import secrets
 from sqlalchemy import select, update
 
 from app.auth import hash_password, hash_token
+from app.config_defaults import default_config
 from app.database import SessionLocal
 from app.models import Server, User
 
@@ -37,6 +38,8 @@ async def _create_server(hostname: str, os_family: str, display_name: str | None
             display_name=display_name,
             api_token_hash=hash_token(token),
             is_active=True,
+            config=default_config(os_family),
+            config_version=1,
         )
         session.add(server)
         await session.commit()

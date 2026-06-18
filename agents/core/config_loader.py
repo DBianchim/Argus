@@ -457,6 +457,53 @@ def load_config(path: Optional[Path] = None) -> AgentConfig:
     return _build_config(raw)
 
 
+# ── aplicacao da config vinda da central ──────────────────────────────────────
+
+def apply_central_config(config: AgentConfig, central: dict) -> None:
+    """
+    Sobrepoe a config gerenciada pela central sobre o AgentConfig em runtime.
+
+    A central usa LISTAS UNICAS (`critical_services`, `paths`); como o agente roda
+    em um SO so, aplicamos a mesma lista aos campos _windows e _linux (ele le o do
+    seu SO). Tolerante a chaves ausentes — nunca levanta.
+    """
+    if not isinstance(central, dict):
+        return
+
+    iv = central.get('interval_seconds')
+    if isinstance(iv, int) and iv >= 10:
+        config.schedule.interval_seconds = iv
+
+    op = central.get('operacional') or {}
+    if 'enabled' in op:
+        config.operacional.enabled = bool(op['enabled'])
+    svcs = op.get('critical_services')
+    if isinstance(svcs, list):
+        config.operacional.critical_services_windows = list(svcs)
+        config.operacional.critical_services_linux = list(svcs)
+
+    bk = central.get('backup') or {}
+    if 'enabled' in bk:
+        config.backup.enabled = bool(bk['enabled'])
+    paths = bk.get('paths')
+    if isinstance(paths, list):
+        config.backup.paths_windows = list(paths)
+        config.backup.paths_linux = list(paths)
+    if isinstance(bk.get('sla_hours'), int):
+        config.backup.sla_hours = bk['sla_hours']
+    if isinstance(bk.get('min_size_mb'), int):
+        config.backup.min_size_mb = bk['min_size_mb']
+    if isinstance(bk.get('extensions'), list):
+        config.backup.extensions = list(bk['extensions'])
+
+    ac = central.get('acesso') or {}
+    if 'enabled' in ac:
+        config.acesso.enabled = bool(ac['enabled'])
+    lg = central.get('logs') or {}
+    if 'enabled' in lg:
+        config.logs.enabled = bool(lg['enabled'])
+
+
 # ── execucao direta (validacao rapida) ────────────────────────────────────────
 
 if __name__ == '__main__':

@@ -52,6 +52,7 @@ def _build_server_view(
         server.last_seen_at,
         offline_after_seconds=settings.offline_after_seconds,
         now=now,
+        config=server.config,
     )
     view = ServerOverview(
         id=server.id,

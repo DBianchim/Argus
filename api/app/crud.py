@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from . import schemas
 from .auth import hash_token
 from .config import settings
+from .config_defaults import default_config
 from .models import Metric, NotificationLog, Server, User, UserSession
 
 
@@ -55,6 +56,45 @@ async def list_servers(session: AsyncSession) -> list[Server]:
 
 async def get_server(session: AsyncSession, server_id: int) -> Server | None:
     return await session.get(Server, server_id)
+
+
+async def update_server(
+    session: AsyncSession,
+    server: Server,
+    *,
+    display_name: str | None = None,
+    is_active: bool | None = None,
+) -> Server:
+    """Atualiza metadados do servidor (apelido, ativo). Campos None = não mexe."""
+    if display_name is not None:
+        server.display_name = display_name or None
+    if is_active is not None:
+        server.is_active = is_active
+    await session.commit()
+    await session.refresh(server)
+    return server
+
+
+async def delete_server(session: AsyncSession, server: Server) -> None:
+    """Remove o servidor (cascade nas métricas e notificações)."""
+    await session.delete(server)
+    await session.commit()
+
+
+def effective_config(server: Server) -> dict:
+    """Config do servidor; se ainda NULL, devolve o default do seu os_family."""
+    return server.config if server.config else default_config(server.os_family)
+
+
+async def put_server_config(
+    session: AsyncSession, server: Server, config: dict
+) -> Server:
+    """Substitui a config do servidor e incrementa config_version (sinal de sync)."""
+    server.config = config
+    server.config_version = (server.config_version or 1) + 1
+    await session.commit()
+    await session.refresh(server)
+    return server
 
 
 # ── consultas de métricas ─────────────────────────────────────────────────────

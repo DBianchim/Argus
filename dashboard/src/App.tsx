@@ -3,6 +3,7 @@ import { getToken } from "./api/client";
 import { Toaster } from "./components/Toaster";
 import { Login } from "./pages/Login";
 import { Overview } from "./pages/Overview";
+import { ServerConfig } from "./pages/ServerConfig";
 import { ServerDetail } from "./pages/ServerDetail";
 
 function Protected({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,14 @@ export function App() {
         element={
           <Protected>
             <ServerDetail />
+          </Protected>
+        }
+      />
+      <Route
+        path="/servers/:id/config"
+        element={
+          <Protected>
+            <ServerConfig />
           </Protected>
         }
       />

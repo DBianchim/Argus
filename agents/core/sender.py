@@ -60,15 +60,19 @@ class SendResult:
     Detalhe completo do resultado de um envio.
 
     Attributes:
-        status:      Resultado final (SUCCESS | QUEUED | DISCARDED)
-        http_code:   Codigo HTTP retornado pela API, ou None em caso de timeout
-        attempts:    Numero de tentativas realizadas
-        detail:      Mensagem descritiva para logging
+        status:         Resultado final (SUCCESS | QUEUED | DISCARDED)
+        http_code:      Codigo HTTP retornado pela API, ou None em caso de timeout
+        attempts:       Numero de tentativas realizadas
+        detail:         Mensagem descritiva para logging
+        config_version: Versao da config do servidor informada pela central na
+                        resposta do ingest (200). None se ausente/erro. O scheduler
+                        usa isso para detectar quando rebaixar a config nova.
     """
-    status:    SendStatus
-    http_code: int | None
-    attempts:  int
-    detail:    str
+    status:         SendStatus
+    http_code:      int | None
+    attempts:       int
+    detail:         str
+    config_version: int | None = None
 
 
 # Codigos HTTP que indicam problema nos dados/configuracao — nao reenviar
@@ -107,7 +111,7 @@ def _attempt_send(
     payload:    dict,
     timeout:    int,
     verify:     bool | str,
-) -> tuple[int | None, Exception | None]:
+) -> tuple[int | None, int | None, Exception | None]:
     """
     Realiza uma unica tentativa de envio HTTP POST.
 
@@ -117,7 +121,8 @@ def _attempt_send(
                 False — a validacao TLS permanece sempre ativa.
 
     Returns:
-        Tupla (http_code, exception).
+        Tupla (http_code, config_version, exception). config_version vem do corpo
+        JSON da resposta 200 (sinal de sync da central); None se ausente.
     """
     # X-Request-ID unico por tentativa — permite ao servidor correlacionar
     # retries e detectar duplicatas nos logs.
@@ -132,14 +137,20 @@ def _attempt_send(
             verify=verify,   # True (CAs do sistema) ou caminho da CA interna;
                              # a validacao TLS nunca e desligada
         )
-        return response.status_code, None
+        cfg_version = None
+        if response.status_code == 200:
+            try:
+                cfg_version = response.json().get('config_version')
+            except Exception:
+                cfg_version = None   # corpo nao-JSON nao quebra o envio
+        return response.status_code, cfg_version, None
 
     except Timeout as e:
-        return None, e
+        return None, None, e
     except ConnectionError as e:
-        return None, e
+        return None, None, e
     except RequestException as e:
-        return None, e
+        return None, None, e
 
 
 # ── funcao publica principal ──────────────────────────────────────────────────
@@ -191,7 +202,9 @@ def send_payload(payload: dict, config: AgentConfig, queue_fn=None) -> SendResul
             )
             time.sleep(wait)
 
-        http_code, exception = _attempt_send(url, headers, payload, timeout, verify)
+        http_code, config_version, exception = _attempt_send(
+            url, headers, payload, timeout, verify
+        )
         last_code      = http_code
         last_exception = exception
 
@@ -205,6 +218,7 @@ def send_payload(payload: dict, config: AgentConfig, queue_fn=None) -> SendResul
                 http_code=200,
                 attempts=attempt,
                 detail='Payload aceito pelo sistema central',
+                config_version=config_version,
             )
 
         if http_code in _NON_RETRYABLE_CODES:

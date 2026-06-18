@@ -38,6 +38,34 @@ class IngestEnvelope(BaseModel):
 class IngestResponse(BaseModel):
     status:    str = "accepted"
     metric_id: int
+    # Versão atual da config do servidor na central. O agente compara com a sua;
+    # se diferir, rebaixa a config nova (GET /agent-config) e aplica.
+    config_version: int = 1
+
+
+# ── configuração do agente (gerenciada pela central) ──────────────────────────
+
+class AgentConfigOut(BaseModel):
+    """Resposta de GET /agent-config (consumida pelo agente)."""
+    config:         dict[str, Any]
+    config_version: int
+
+
+class ServerConfigOut(BaseModel):
+    """Config de um servidor para o editor do dashboard."""
+    config:         dict[str, Any]
+    config_version: int
+
+
+class ServerConfigUpdate(BaseModel):
+    """Substitui a config inteira do servidor (PUT)."""
+    config: dict[str, Any]
+
+
+class ServerPatch(BaseModel):
+    """Edição de metadados do servidor (apelido, ativar/desativar)."""
+    display_name: str | None = Field(default=None, max_length=255)
+    is_active:    bool | None = None
 
 
 # ── saída (consultas) ─────────────────────────────────────────────────────────
