@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Settings } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -23,6 +23,9 @@ import type {
   MetricOut,
   MetricPage,
   OperacionalMetrics,
+  Pilar,
+  ServerConfigBlob,
+  ServerConfigOut,
   ServerHealthOut,
 } from "../types";
 import { PILAR_LABEL, formatPct, relativeTime } from "../utils";
@@ -170,9 +173,15 @@ function BackupSection({ metrics }: { metrics: BackupMetrics }) {
 function FindingsSection({
   title,
   metrics,
+  ignored,
+  onToggle,
+  busy,
 }: {
   title: string;
   metrics: FindingsMetrics;
+  ignored?: Set<string>;
+  onToggle?: (item: string) => void;
+  busy?: boolean;
 }) {
   const summary = metrics.summary ?? {};
   return (
@@ -191,7 +200,7 @@ function FindingsSection({
           Info {summary.info ?? 0}
         </span>
       </div>
-      <FindingsTable findings={metrics.findings ?? []} />
+      <FindingsTable findings={metrics.findings ?? []} ignored={ignored} onToggle={onToggle} busy={busy} />
     </Section>
   );
 }
@@ -290,6 +299,42 @@ export function ServerDetail() {
     refetchInterval: 30_000,
   });
 
+  // Config do servidor — para ignorar/reativar achados (acesso/logs) na tabela.
+  const queryClient = useQueryClient();
+  const { data: cfg } = useQuery<ServerConfigOut>({
+    queryKey: ["server-config", serverId],
+    queryFn: () => api<ServerConfigOut>(`/api/v1/servers/${serverId}/config`),
+  });
+
+  const toggleOverride = useMutation({
+    mutationFn: ({ pilar, item }: { pilar: Pilar; item: string }) => {
+      const base: ServerConfigBlob = cfg?.config ?? {};
+      const section = (base[pilar] ?? {}) as { finding_overrides?: Record<string, string> };
+      const overrides = { ...(section.finding_overrides ?? {}) };
+      if (overrides[item]) delete overrides[item];
+      else overrides[item] = "ignore";
+      const body: ServerConfigBlob = {
+        ...base,
+        [pilar]: { ...section, finding_overrides: overrides },
+      };
+      return api(`/api/v1/servers/${serverId}/config`, {
+        method: "PUT",
+        body: JSON.stringify({ config: body }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["server-config", serverId] });
+      queryClient.invalidateQueries({ queryKey: ["health", serverId] });
+      queryClient.invalidateQueries({ queryKey: ["latest", serverId] });
+      queryClient.invalidateQueries({ queryKey: ["overview"] });
+    },
+  });
+
+  const ignoredSet = (pilar: Pilar): Set<string> => {
+    const section = (cfg?.config?.[pilar] ?? {}) as { finding_overrides?: Record<string, string> };
+    return new Set(Object.keys(section.finding_overrides ?? {}));
+  };
+
   if (isLoading || !health) {
     return (
       <div>
@@ -348,12 +393,18 @@ export function ServerDetail() {
             <FindingsSection
               title={PILAR_LABEL.acesso}
               metrics={byPilar.acesso.metrics as FindingsMetrics}
+              ignored={ignoredSet("acesso")}
+              onToggle={(item) => toggleOverride.mutate({ pilar: "acesso", item })}
+              busy={toggleOverride.isPending}
             />
           )}
           {byPilar.logs && (
             <FindingsSection
               title={PILAR_LABEL.logs}
               metrics={byPilar.logs.metrics as FindingsMetrics}
+              ignored={ignoredSet("logs")}
+              onToggle={(item) => toggleOverride.mutate({ pilar: "logs", item })}
+              busy={toggleOverride.isPending}
             />
           )}
           {(latest ?? []).length === 0 && (

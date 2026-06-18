@@ -51,8 +51,10 @@ def default_config(os_family: str) -> dict[str, Any]:
             "min_size_mb": 5,
             "extensions": list(_DEFAULT_EXTENSIONS),
         },
-        "acesso": {"enabled": True},
-        "logs": {"enabled": True},
+        # finding_overrides: {item: "ignore"|"info"} silencia falsos positivos por
+        # servidor (preenchido pela UI ao marcar um achado como ignorado).
+        "acesso": {"enabled": True, "finding_overrides": {}},
+        "logs": {"enabled": True, "finding_overrides": {}},
     }
 
 

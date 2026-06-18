@@ -157,14 +157,25 @@ def evaluate_backup(metrics: dict) -> tuple[Status, list[Alert]]:
     return Status.OK, []
 
 
-def evaluate_findings(pilar: str, metrics: dict) -> tuple[Status, list[Alert]]:
-    """Pilares acesso e logs: derivado dos findings (status error/warning)."""
+def evaluate_findings(pilar: str, metrics: dict, config: dict | None = None) -> tuple[Status, list[Alert]]:
+    """
+    Pilares acesso e logs: derivado dos findings (status error/warning).
+
+    `finding_overrides` (config por servidor) permite silenciar falsos positivos:
+    {item: "ignore" | "info"} faz o achado NÃO elevar o status nem gerar alerta
+    (equivalente a tirar o W3SVC da lista do operacional).
+    """
     statuses: list[Status] = [Status.OK]
     alerts: list[Alert] = []
+    overrides = ((config or {}).get(pilar) or {}).get("finding_overrides") or {}
 
     for f in metrics.get("findings") or []:
         f_status = f.get("status")
         item = str(f.get("item", "?"))
+
+        # Ajuste por servidor: achado marcado como ignorado/info não alerta.
+        if overrides.get(item) in ("ignore", "info"):
+            continue
 
         # Limpeza manual do log de segurança (EID 1102) é incidente crítico —
         # eleva acima do tratamento padrão de finding 'error'.
@@ -194,7 +205,7 @@ def evaluate_pilar(pilar: str, metrics: dict, config: dict | None = None) -> tup
     if pilar == "backup":
         return evaluate_backup(metrics)
     if pilar in ("acesso", "logs"):
-        return evaluate_findings(pilar, metrics)
+        return evaluate_findings(pilar, metrics, config)
     return Status.UNKNOWN, []
 
 
