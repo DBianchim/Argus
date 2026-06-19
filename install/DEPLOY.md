@@ -27,7 +27,23 @@ máquina e se recupera de quedas. **Tudo roda sozinho após o deploy.**
 
 ---
 
-## Passo a passo
+## Caminho rápido (Windows) — script guiado
+
+Em vez dos passos manuais abaixo, na raiz do projeto rode:
+
+```powershell
+.\install\install-central.ps1
+```
+
+Ele verifica o Docker, gera o `.env` com segredos fortes (perguntando só o
+`ARGUS_HOST`), sobe a central, espera ficar saudável, cria o primeiro usuário do
+dashboard e imprime a URL de acesso + o comando para instalar agentes. Os passos
+manuais a seguir continuam válidos (e servem para Linux ou para entender o que o
+script faz).
+
+---
+
+## Passo a passo (manual)
 
 ### 1. Configurar os segredos
 

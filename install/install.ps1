@@ -36,34 +36,85 @@ function Fail($m){ Write-Host "[ERRO]  $m" -ForegroundColor Red; throw $m }
 
 Write-Host ""
 Write-Host " ============================================================" -ForegroundColor Cyan
-Write-Host "   Argus Agent - Instalador Windows (bootstrap)" -ForegroundColor Cyan
+Write-Host "   Argus Agent - Instalador Windows" -ForegroundColor Cyan
 Write-Host " ============================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  Instala o agente de monitoramento como Tarefa Agendada (SYSTEM)," -ForegroundColor Gray
+Write-Host "  que inicia no boot e envia metricas para a central por HTTPS." -ForegroundColor Gray
+Write-Host "  Voce vai precisar de: o ENDERECO da central e um TOKEN deste servidor." -ForegroundColor Gray
 Write-Host ""
 
 # ── privilegios de administrador ──────────────────────────────────────────────
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
            ).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 if (-not $isAdmin) {
-    Fail "Execute em um PowerShell aberto COMO ADMINISTRADOR e rode o comando de novo."
+    Fail "Este instalador precisa de Administrador. Abra o PowerShell com 'Executar como administrador' e rode o comando de novo."
 }
 Info "Privilegios de Administrador confirmados"
 
 # ── parametros (env vars ou prompt) ─────────────────────────────────────────────
 $ArgusHost = $env:ARGUS_HOST
-if (-not $ArgusHost) { $ArgusHost = Read-Host "Endereco da central (ex: argus.empresa.local ou localhost)" }
-if (-not $ArgusHost) { Fail "ARGUS_HOST nao informado." }
+if (-not $ArgusHost) {
+    Write-Host ""
+    Write-Host "  ENDERECO DA CENTRAL: o nome ou IP onde a central esta rodando" -ForegroundColor Gray
+    Write-Host "  (ex.: argus.empresa.local, 10.0.0.20 ou localhost se for nesta maquina)." -ForegroundColor Gray
+    $ArgusHost = Read-Host "  Endereco da central"
+}
+$ArgusHost = ($ArgusHost -replace '^https?://', '').TrimEnd('/')   # tolera colar com http(s)://
+if (-not $ArgusHost) { Fail "Endereco da central nao informado." }
 
 $ArgusToken = $env:ARGUS_TOKEN
 if (-not $ArgusToken) {
-    $sec = Read-Host "Token do agente (gerado na central com create-server)" -AsSecureString
+    Write-Host ""
+    Write-Host "  TOKEN deste servidor: gerado UMA VEZ na central pelo administrador, com:" -ForegroundColor Gray
+    Write-Host "    docker compose exec api python manage.py create-server --hostname $env:COMPUTERNAME --os windows" -ForegroundColor DarkGray
+    Write-Host "  Copie o token exibido e cole abaixo (a digitacao fica oculta)." -ForegroundColor Gray
+    $sec = Read-Host "  Token do agente" -AsSecureString
     $ArgusToken = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
         [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
 }
+$ArgusToken = ($ArgusToken).Trim()
 if (-not $ArgusToken) { Fail "Token nao informado." }
 
 $Interval = $env:ARGUS_INTERVAL; if (-not $Interval) { $Interval = '300' }
 $Base = "http://$ArgusHost/install"
 Info "Central: $ArgusHost"
+
+# ── pre-checagem: central acessivel e token valido (falha cedo, com msg clara) ──
+# Valida ANTES de instalar Python/servico. O cert interno ainda nao e confiado nesta
+# maquina, entao ignoramos a validacao TLS so para esta checagem (a CA e instalada
+# logo adiante). Usamos um callback compilado em C# (Add-Type) porque no PowerShell
+# 5.1 um scriptblock como callback de TLS falha ("sem Runspace na thread"). E forcamos
+# TLS 1.2 (o PS 5.1 nao negocia 1.2 por padrao). O token so vai no header, nao no link.
+Info "Verificando central e token..."
+if (-not ([System.Management.Automation.PSTypeName]'ArgusCertBypass').Type) {
+    Add-Type -TypeDefinition @"
+using System.Net;
+public static class ArgusCertBypass {
+    public static void On()  { ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; }
+    public static void Off() { ServicePointManager.ServerCertificateValidationCallback = null; }
+}
+"@
+}
+try { [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 } catch {}
+[ArgusCertBypass]::On()
+try {
+    Invoke-WebRequest "https://$ArgusHost/api/v1/agent-config" `
+        -Headers @{ Authorization = "Bearer $ArgusToken" } -UseBasicParsing -TimeoutSec 12 | Out-Null
+    Info "Central respondeu e o token e valido"
+} catch {
+    $code = 0
+    if ($_.Exception.Response) { try { $code = [int]$_.Exception.Response.StatusCode } catch {} }
+    if ($code -eq 401) {
+        Fail "Token invalido para a central '$ArgusHost'. Gere um novo na central (create-server) e tente de novo."
+    } elseif ($code -eq 404) {
+        Fail "A central '$ArgusHost' respondeu, mas nao reconheceu /agent-config — versao desatualizada? Atualize a central."
+    } else {
+        Fail "Nao consegui falar com a central em 'https://$ArgusHost'. Verifique o endereco, a rede e se a central esta no ar. Detalhe: $($_.Exception.Message)"
+    }
+} finally {
+    [ArgusCertBypass]::Off()
+}
 
 # ── download dos artefatos (CA + codigo do agente) ──────────────────────────────
 $Tmp = Join-Path $env:TEMP "argus-install-$(Get-Random)"
@@ -72,11 +123,15 @@ $caTmp  = Join-Path $Tmp 'argus-ca.crt'
 $zipTmp = Join-Path $Tmp 'argus-agent.zip'
 $srcDir = Join-Path $Tmp 'agent'
 
-Info "Baixando a CA da central..."
-Invoke-WebRequest "$Base/ca.crt" -OutFile $caTmp -UseBasicParsing
-Info "Baixando o codigo do agente..."
-Invoke-WebRequest "$Base/argus-agent.zip" -OutFile $zipTmp -UseBasicParsing
-Expand-Archive -Path $zipTmp -DestinationPath $srcDir -Force
+try {
+    Info "Baixando a CA da central..."
+    Invoke-WebRequest "$Base/ca.crt" -OutFile $caTmp -UseBasicParsing -TimeoutSec 30
+    Info "Baixando o codigo do agente..."
+    Invoke-WebRequest "$Base/argus-agent.zip" -OutFile $zipTmp -UseBasicParsing -TimeoutSec 60
+    Expand-Archive -Path $zipTmp -DestinationPath $srcDir -Force
+} catch {
+    Fail "Falha ao baixar os artefatos da central em '$Base'. A central esta servindo /install? Detalhe: $($_.Exception.Message)"
+}
 Info "Artefatos baixados"
 
 # ── Python "para todos os usuarios" ─────────────────────────────────────────────
