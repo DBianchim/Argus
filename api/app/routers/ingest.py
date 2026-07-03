@@ -11,16 +11,18 @@ Contrato com o agente (agents/core/sender.py):
 """
 
 import logging
+import time
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import crud, notifications
-from ..auth import authenticate_agent
+from ..auth import authenticate_agent, require_dashboard
 from ..config import settings
 from ..database import get_session
+from ..ingest_metrics import metrics as ingest_metrics
 from ..models import Server
-from ..schemas import IngestEnvelope, IngestResponse
+from ..schemas import IngestEnvelope, IngestResponse, IngestStatsOut
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +48,22 @@ async def ingest(
             envelope.hostname, server.hostname,
         )
 
+    # Instrumentação: cronometra a persistência (parte crítica do custo de
+    # ingestão) e o handler inteiro. perf_counter é monotônico — imune a ajustes
+    # de relógio. Registra o evento mesmo em falha, para a taxa de erro ser real.
+    handler_start = time.perf_counter()
     try:
+        persist_start = time.perf_counter()
         metric = await crud.insert_metric(session, server, envelope, x_request_id)
+        persist_ms = (time.perf_counter() - persist_start) * 1000
     except Exception as exc:
         await session.rollback()
+        ingest_metrics.record(
+            pilar=envelope.pilar,
+            total_ms=(time.perf_counter() - handler_start) * 1000,
+            persist_ms=(time.perf_counter() - handler_start) * 1000,
+            ok=False,
+        )
         logger.error("Falha ao persistir métrica | pilar=%s | erro=%s",
                      envelope.pilar, type(exc).__name__)
         # 503 → transitório: o agente vai retentar e, no limite, enfileirar.
@@ -71,6 +85,13 @@ async def ingest(
         logger.warning("Falha ao avaliar notificacao | pilar=%s | erro=%s",
                        envelope.pilar, type(exc).__name__)
 
+    ingest_metrics.record(
+        pilar=envelope.pilar,
+        total_ms=(time.perf_counter() - handler_start) * 1000,
+        persist_ms=persist_ms,
+        ok=True,
+    )
+
     # config_version sinaliza ao agente se a config dele mudou (ele rebaixa via
     # GET /agent-config quando a versão diferir da que tem em cache).
     return IngestResponse(
@@ -78,3 +99,18 @@ async def ingest(
         metric_id=metric.id,
         config_version=server.config_version,
     )
+
+
+@router.get(
+    "/ingest/stats",
+    response_model=IngestStatsOut,
+    dependencies=[Depends(require_dashboard)],
+    summary="Estatísticas de desempenho da ingestão (em memória)",
+)
+async def ingest_stats():
+    """Contadores e latências de ingestão desde o último boot da central.
+
+    Efêmero (zera ao reiniciar). Protegido pelo token do dashboard — não é
+    dado de agente. Alimenta a evidência de desempenho/carga.
+    """
+    return ingest_metrics.snapshot()

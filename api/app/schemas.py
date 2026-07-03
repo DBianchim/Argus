@@ -43,6 +43,21 @@ class IngestResponse(BaseModel):
     config_version: int = 1
 
 
+class IngestStatsOut(BaseModel):
+    """Estatísticas de desempenho da ingestão (GET /api/v1/ingest/stats)."""
+    uptime_seconds:     float
+    total_received:     int
+    total_persisted:    int
+    total_failed:       int
+    per_pilar:          dict[str, int]
+    throughput_per_min: int            # payloads persistidos nos últimos 60s
+    sample_size:        int            # eventos na janela de latência
+    persist_ms_avg:     float
+    persist_ms_p50:     float
+    persist_ms_p95:     float
+    persist_ms_max:     float
+
+
 # ── configuração do agente (gerenciada pela central) ──────────────────────────
 
 class AgentConfigOut(BaseModel):
