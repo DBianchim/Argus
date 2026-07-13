@@ -13,7 +13,7 @@ Contrato com o agente (agents/core/sender.py):
 import logging
 import time
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import crud, notifications
@@ -22,11 +22,17 @@ from ..config import settings
 from ..database import get_session
 from ..ingest_metrics import metrics as ingest_metrics
 from ..models import Server
+from ..rate_limit import limiter
 from ..schemas import IngestEnvelope, IngestResponse, IngestStatsOut
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["ingest"])
+
+# Circuit breaker, não throttle: precisa folgar acima do reenvio de fila
+# inteiro (até 1000 payloads — ver rate_limit.py). Protege contra token
+# comprometido/agente em loop, não o uso normal, nem a recuperação de fila.
+_INGEST_LIMIT = "1500/minute"
 
 
 @router.post(
@@ -35,7 +41,9 @@ router = APIRouter(prefix="/api/v1", tags=["ingest"])
     status_code=status.HTTP_200_OK,
     summary="Recebe um payload de métricas de um agente",
 )
+@limiter.limit(_INGEST_LIMIT)
 async def ingest(
+    request: Request,
     envelope: IngestEnvelope,
     server: Server = Depends(authenticate_agent),
     session: AsyncSession = Depends(get_session),

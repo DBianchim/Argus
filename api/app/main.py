@@ -24,6 +24,9 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # O catch-all da SPA serve o manifest da PWA via FileResponse, que infere o tipo
 # pela extensão. .webmanifest não é conhecido por padrão (cairia em text/plain),
@@ -34,6 +37,7 @@ mimetypes.add_type("text/javascript", ".js")
 from . import __version__, crud, notifications
 from .config import settings
 from .database import SessionLocal
+from .rate_limit import limiter
 from .routers import agent_config
 from .routers import auth as auth_router
 from .routers import health, ingest, install, metrics
@@ -85,6 +89,10 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(health.router)
 app.include_router(ingest.router)

@@ -20,10 +20,16 @@ import io
 import zipfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
+from ..rate_limit import limiter
+
 router = APIRouter(prefix="/install", tags=["install"])
+
+# Sem autenticação por design (ver docstring do módulo) — limite por IP contra
+# flood no endpoint que monta o zip em memória a cada chamada.
+_LIMIT = "30/minute"
 
 # Layout dentro da imagem (Dockerfile copia agents/ e install/):
 #   /app/api/app/routers/install.py  → sobe 4 níveis → /app
@@ -46,7 +52,8 @@ def _should_include(path: Path) -> bool:
 
 
 @router.get("/argus-agent.zip")
-async def agent_bundle() -> StreamingResponse:
+@limiter.limit(_LIMIT)
+async def agent_bundle(request: Request) -> StreamingResponse:
     """Empacota o código do agente (agents/) em um zip gerado em memória."""
     if not _AGENTS_DIR.is_dir():
         raise HTTPException(status_code=404, detail="agentes indisponíveis na imagem")
@@ -72,10 +79,12 @@ def _script(name: str, media_type: str) -> FileResponse:
 
 
 @router.get("/install.ps1")
-async def install_ps1() -> FileResponse:
+@limiter.limit(_LIMIT)
+async def install_ps1(request: Request) -> FileResponse:
     return _script("install.ps1", "text/plain; charset=utf-8")
 
 
 @router.get("/install.sh")
-async def install_sh() -> FileResponse:
+@limiter.limit(_LIMIT)
+async def install_sh(request: Request) -> FileResponse:
     return _script("install.sh", "text/x-shellscript; charset=utf-8")
