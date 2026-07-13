@@ -10,6 +10,9 @@
 !*.env.example
 agent.env
 
+# ── Backups locais (gerados pelo serviço `backup` do docker-compose) ────────
+/backups/
+
 # ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]

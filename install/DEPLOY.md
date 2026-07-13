@@ -181,17 +181,37 @@ docker compose up -d --build      # aplicar atualização do código (rebuild)
 
 ### Backup do banco
 
-Os dados ficam no volume `argus-pgdata`. Para um dump lógico:
+Um quarto serviço, `backup`, faz **dump automático e periódico** do banco (a cada
+`BACKUP_INTERVAL_HOURS`, default 24h) e grava em `./backups` — uma pasta do
+**host**, não um volume Docker gerenciado, para ficar fácil de copiar para fora
+da máquina (rsync, robocopy, sync de nuvem). Um backup que só existe no mesmo
+disco da central não protege contra a perda desse disco — **copie `./backups`
+para outro lugar periodicamente**; o Argus não faz isso sozinho.
+
+Dumps antigos são apagados automaticamente após `BACKUP_RETENTION_DAYS` (default
+14 dias). Ajuste os dois no `.env` se quiser outro intervalo/retenção.
+
 ```bash
-docker compose exec -T db pg_dump -U argus argus > backup-argus.sql
+docker compose logs -f backup       # acompanhar os dumps
+ls backups/                         # arquivos argus-<timestamp>.dump
 ```
-Restaurar:
+
+**Restaurar** (⚠️ sobrescreve o banco atual — o script pausa 10s antes de agir):
 ```bash
-docker compose exec -T db psql -U argus argus < backup-argus.sql
+docker compose exec backup /restore.sh --list                       # ver dumps disponíveis
+docker compose exec backup /restore.sh argus-20260713T220000Z.dump   # restaurar um deles
+```
+
+Para um dump manual avulso (ex.: antes de uma atualização arriscada), sem esperar
+o ciclo automático:
+```bash
+docker compose exec -T db pg_dump -U argus -d argus -Fc > backups/manual-$(date -u +%Y%m%dT%H%M%SZ).dump
 ```
 
 Faça backup também do volume `argus-caddy-data` (contém a CA local) — se ele for
-perdido, a CA muda e os clientes precisam reinstalar o certificado.
+perdido, a CA muda e os clientes precisam reinstalar o certificado. Este volume
+não entra no dump automático (ciclo de vida diferente, muda raramente); copie-o
+manualmente quando for renovado.
 
 ---
 

@@ -1,9 +1,10 @@
 # =============================================================================
 # docker-compose.yml — CENTRAL do Argus (on-premise, uma instalação por empresa)
 #
-#   db    → PostgreSQL 18 (volume persistente, sem porta no host)
-#   api   → FastAPI + dashboard buildado (migrations no boot, sem porta no host)
-#   caddy → reverse proxy + HTTPS (único serviço exposto: 80/443)
+#   db     → PostgreSQL 18 (volume persistente, sem porta no host)
+#   api    → FastAPI + dashboard buildado (migrations no boot, sem porta no host)
+#   caddy  → reverse proxy + HTTPS (único serviço exposto: 80/443)
+#   backup → dump periódico do banco para ./backups no HOST (ver docker/backup.sh)
 #
 # Subir:   docker compose up -d --build
 # Segredos vêm do arquivo .env (ver .env.example). Todos com restart automático,
@@ -53,6 +54,27 @@ services:
       start_period: 30s
     networks: [argus-net]
     # Sem `ports:` — a API só é acessível via Caddy.
+
+  backup:
+    image: postgres:18
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+    entrypoint: ["/bin/sh", "/scripts/backup.sh"]
+    volumes:
+      - ./docker/backup.sh:/scripts/backup.sh:ro
+      - ./docker/restore.sh:/restore.sh:ro
+      # Bind mount para uma pasta do HOST — não um volume Docker gerenciado.
+      # Um backup que só existe no mesmo disco da central não protege contra a
+      # perda desse disco; esta pasta é o que deve ser copiado para fora da
+      # máquina (rsync, robocopy, sync de nuvem).
+      - ./backups:/backups
+    networks: [argus-net]
 
   caddy:
     image: caddy:2-alpine
