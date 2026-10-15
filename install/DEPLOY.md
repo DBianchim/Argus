@@ -188,6 +188,10 @@ da máquina (rsync, robocopy, sync de nuvem). Um backup que só existe no mesmo
 disco da central não protege contra a perda desse disco — **copie `./backups`
 para outro lugar periodicamente**; o Argus não faz isso sozinho.
 
+Os dumps contêm dados sensíveis (hashes de senha, tokens), então são gravados
+com permissão `600`; em hosts Linux o dono é `root` (o container roda como root),
+logo copie `./backups` com `sudo` (ex.: `sudo rsync -a backups/ destino/`).
+
 Dumps antigos são apagados automaticamente após `BACKUP_RETENTION_DAYS` (default
 14 dias). Ajuste os dois no `.env` se quiser outro intervalo/retenção.
 
@@ -197,9 +201,13 @@ ls backups/                         # arquivos argus-<timestamp>.dump
 ```
 
 **Restaurar** (⚠️ sobrescreve o banco atual — o script pausa 10s antes de agir):
+Pare a `api` antes — ela mantém conexões abertas no banco, o que faz o
+`pg_restore --clean` falhar por lock ou restaurar com a aplicação escrevendo no meio:
 ```bash
-docker compose exec backup /restore.sh --list                       # ver dumps disponíveis
-docker compose exec backup /restore.sh argus-20260713T220000Z.dump   # restaurar um deles
+docker compose exec backup sh /restore.sh --list                       # ver dumps disponíveis
+docker compose stop api
+docker compose exec backup sh /restore.sh argus-20260713T220000Z.dump   # restaurar um deles
+docker compose start api
 ```
 
 Para um dump manual avulso (ex.: antes de uma atualização arriscada), sem esperar

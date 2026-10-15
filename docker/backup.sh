@@ -13,6 +13,9 @@
 # nao depende de encoding de shell, diferente de um dump -Fp/.sql puro.
 set -eu
 
+# Dumps contem dados sensiveis (hashes de senha, tokens): so o dono le.
+umask 077
+
 BACKUP_DIR=/backups
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
 INTERVAL_HOURS="${BACKUP_INTERVAL_HOURS:-24}"
