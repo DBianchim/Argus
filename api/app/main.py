@@ -42,7 +42,7 @@ from .routers import agent_config
 from .routers import auth as auth_router
 from .routers import health, ingest, install, metrics
 from .routers import notifications as notifications_router
-from .routers import overview, servers
+from .routers import overview, servers, users
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
@@ -103,6 +103,7 @@ app.include_router(servers.router)
 app.include_router(metrics.router)
 app.include_router(install.router)
 app.include_router(agent_config.router)
+app.include_router(users.router)
 
 
 # ── SPA (build do dashboard) ──────────────────────────────────────────────────

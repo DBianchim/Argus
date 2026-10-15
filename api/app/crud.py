@@ -12,10 +12,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import schemas
-from .auth import hash_token
+from .auth import hash_password, hash_token
 from .config import settings
 from .config_defaults import default_config
-from .models import Metric, NotificationLog, Server, User, UserSession
+from .models import AlertAck, Metric, NotificationLog, Server, User, UserSession
 
 
 def _utcnow() -> datetime.datetime:
@@ -56,6 +56,26 @@ async def list_servers(session: AsyncSession) -> list[Server]:
 
 async def get_server(session: AsyncSession, server_id: int) -> Server | None:
     return await session.get(Server, server_id)
+
+
+async def create_server(
+    session: AsyncSession, *, hostname: str, os_family: str, display_name: str | None
+) -> tuple[Server, str]:
+    """Registra um servidor e devolve (server, token em claro — só existe agora)."""
+    token = secrets.token_urlsafe(32)
+    server = Server(
+        hostname=hostname,
+        os_family=os_family,
+        display_name=display_name,
+        api_token_hash=hash_token(token),
+        is_active=True,
+        config=default_config(os_family),
+        config_version=1,
+    )
+    session.add(server)
+    await session.commit()
+    await session.refresh(server)
+    return server, token
 
 
 async def update_server(
@@ -149,6 +169,97 @@ async def latest_per_pilar_all(session: AsyncSession) -> list[Metric]:
     return list(result.scalars().all())
 
 
+async def recent_operacional_history(
+    session: AsyncSession, *, limit_per_server: int = 16
+) -> list[Metric]:
+    """
+    Últimas N amostras do pilar operacional de cada servidor — frota inteira em
+    1 query. Alimenta o sparkline de CPU do GET /overview sem N+1.
+    """
+    rn = (
+        func.row_number()
+        .over(
+            partition_by=Metric.server_id,
+            order_by=(Metric.collected_at.desc(), Metric.id.desc()),
+        )
+        .label("rn")
+    )
+    subq = (
+        select(Metric.id, rn)
+        .where(Metric.pilar == "operacional")
+        .subquery()
+    )
+    result = await session.execute(
+        select(Metric)
+        .join(subq, Metric.id == subq.c.id)
+        .where(subq.c.rn <= limit_per_server)
+    )
+    return list(result.scalars().all())
+
+
+# ── reconhecimento de alertas ──────────────────────────────────────────────────
+
+async def acks_for_servers(session: AsyncSession, server_ids: list[int]) -> list[AlertAck]:
+    """Todos os reconhecimentos da frota visível — 1 query, sem N+1 no overview."""
+    if not server_ids:
+        return []
+    result = await session.execute(
+        select(AlertAck).where(AlertAck.server_id.in_(server_ids))
+    )
+    return list(result.scalars().all())
+
+
+async def upsert_ack(
+    session: AsyncSession, *, server_id: int, pilar: str, item: str, acked_by: str
+) -> AlertAck:
+    """Reconhece (server_id, pilar, item) — substitui um reconhecimento anterior."""
+    result = await session.execute(
+        select(AlertAck).where(
+            AlertAck.server_id == server_id, AlertAck.pilar == pilar, AlertAck.item == item,
+        )
+    )
+    ack = result.scalar_one_or_none()
+    now = _utcnow()
+    if ack is None:
+        ack = AlertAck(server_id=server_id, pilar=pilar, item=item, acked_by=acked_by, acked_at=now)
+        session.add(ack)
+    else:
+        ack.acked_by = acked_by
+        ack.acked_at = now
+    await session.commit()
+    await session.refresh(ack)
+    return ack
+
+
+async def latest_bad_notification(session: AsyncSession, server_ids: list[int]) -> list[NotificationLog]:
+    """
+    Última transição para um estado não-OK de cada servidor — aproximação de
+    "desde quando" o alerta ativo está em curso (ver notifications.py: o log
+    registra só o alerta de topo por transição, não por item individual).
+    """
+    if not server_ids:
+        return []
+    rn = (
+        func.row_number()
+        .over(
+            partition_by=NotificationLog.server_id,
+            order_by=NotificationLog.created_at.desc(),
+        )
+        .label("rn")
+    )
+    subq = (
+        select(NotificationLog.id, rn)
+        .where(NotificationLog.server_id.in_(server_ids), NotificationLog.status_to != "ok")
+        .subquery()
+    )
+    result = await session.execute(
+        select(NotificationLog)
+        .join(subq, NotificationLog.id == subq.c.id)
+        .where(subq.c.rn == 1)
+    )
+    return list(result.scalars().all())
+
+
 # ── usuarios e sessoes ────────────────────────────────────────────────────────
 
 async def get_user_by_username(session: AsyncSession, username: str) -> User | None:
@@ -183,6 +294,110 @@ async def revoke_session_by_token(session: AsyncSession, token: str) -> bool:
     user_session.revoked = True
     await session.commit()
     return True
+
+
+async def list_active_sessions(session: AsyncSession, user_id: int) -> list[UserSession]:
+    """Sessões não revogadas e não expiradas do usuário, mais recente primeiro."""
+    result = await session.execute(
+        select(UserSession)
+        .where(
+            UserSession.user_id == user_id,
+            UserSession.revoked.is_(False),
+            UserSession.expires_at > _utcnow(),
+        )
+        .order_by(UserSession.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+async def revoke_session_by_id(session: AsyncSession, user_id: int, session_id: int) -> bool:
+    """Revoga uma sessão do próprio usuário. True se encontrou e revogou."""
+    result = await session.execute(
+        select(UserSession).where(
+            UserSession.id == session_id, UserSession.user_id == user_id,
+        )
+    )
+    user_session = result.scalar_one_or_none()
+    if user_session is None:
+        return False
+    user_session.revoked = True
+    await session.commit()
+    return True
+
+
+# ── gerenciamento de usuarios (admin) ─────────────────────────────────────────
+
+async def list_users(session: AsyncSession) -> list[User]:
+    result = await session.execute(select(User).order_by(User.username))
+    return list(result.scalars().all())
+
+
+async def get_user(session: AsyncSession, user_id: int) -> User | None:
+    return await session.get(User, user_id)
+
+
+async def count_active_admins(session: AsyncSession, *, exclude_id: int | None = None) -> int:
+    """Quantos admins ativos existem (excluindo opcionalmente um id) — evita lockout."""
+    stmt = select(func.count()).select_from(User).where(
+        User.role == "admin", User.is_active.is_(True)
+    )
+    if exclude_id is not None:
+        stmt = stmt.where(User.id != exclude_id)
+    return (await session.execute(stmt)).scalar_one()
+
+
+async def create_user(
+    session: AsyncSession, body: "schemas.UserCreate"
+) -> User:
+    user = User(
+        username=body.username,
+        password_hash=hash_password(body.password),
+        display_name=body.display_name,
+        role=body.role,
+        is_active=True,
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def update_user(
+    session: AsyncSession, user: User, body: "schemas.UserPatch"
+) -> User:
+    if body.display_name is not None:
+        user.display_name = body.display_name or None
+    if body.role is not None:
+        user.role = body.role
+    if body.is_active is not None:
+        user.is_active = body.is_active
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def delete_user(session: AsyncSession, user: User) -> None:
+    await session.delete(user)
+    await session.commit()
+
+
+async def update_own_display_name(session: AsyncSession, user: User, display_name: str | None) -> User:
+    """Autoatendimento (Minha conta) — só o próprio nome de exibição, nunca papel/ativo."""
+    user.display_name = display_name or None
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def set_password(session: AsyncSession, user: User, new_password: str) -> None:
+    """Troca a senha e revoga todas as sessões existentes do usuário."""
+    user.password_hash = hash_password(new_password)
+    result = await session.execute(
+        select(UserSession).where(UserSession.user_id == user.id, UserSession.revoked.is_(False))
+    )
+    for user_session in result.scalars().all():
+        user_session.revoked = True
+    await session.commit()
 
 
 # ── notificacoes ──────────────────────────────────────────────────────────────

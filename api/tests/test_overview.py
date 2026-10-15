@@ -66,6 +66,51 @@ async def test_overview_server_never_seen_is_unknown(client, server_id):
     assert body["kpis"]["backups_ok_pct"] is None
 
 
+async def test_overview_operacional_summary_and_sparkline(client, server_id):
+    await _ingest(
+        client, "operacional",
+        {
+            "cpu": {"usage_pct": 30.0},
+            "memory": {"usage_pct": 50.0},
+            "disk": [{"mount": "/", "usage_pct": 40.0}, {"mount": "/data", "usage_pct": 65.0}],
+            "uptime_seconds": 3600.0,
+        },
+        timestamp="2026-06-08T22:00:00Z",
+    )
+    await _ingest(
+        client, "operacional",
+        {
+            "cpu": {"usage_pct": 46.0},
+            "memory": {"usage_pct": 55.0},
+            "disk": [{"mount": "/", "usage_pct": 41.0}, {"mount": "/data", "usage_pct": 66.0}],
+            "uptime_seconds": 4200.0,
+        },
+        timestamp="2026-06-08T22:10:00Z",
+    )
+
+    body = (await client.get("/api/v1/overview", headers=DASHBOARD_HEADERS)).json()
+    server = body["servers"][0]
+
+    # Resumo vem do payload mais recente (22:10) — inclui o pior disco (66%).
+    assert server["cpu_pct"] == 46.0
+    assert server["mem_pct"] == 55.0
+    assert server["disk_pct"] == 66.0
+    assert server["uptime_seconds"] == 4200.0
+
+    # Sparkline: as duas amostras, em ordem cronológica.
+    assert server["cpu_history"] == [30.0, 46.0]
+
+
+async def test_overview_operacional_summary_missing_when_no_data(client, server_id):
+    body = (await client.get("/api/v1/overview", headers=DASHBOARD_HEADERS)).json()
+    server = body["servers"][0]
+    assert server["cpu_pct"] is None
+    assert server["mem_pct"] is None
+    assert server["disk_pct"] is None
+    assert server["uptime_seconds"] is None
+    assert server["cpu_history"] == []
+
+
 async def test_overview_requires_auth(client):
     resp = await client.get("/api/v1/overview")
     assert resp.status_code == 401

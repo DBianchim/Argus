@@ -77,6 +77,11 @@ class User(Base):
     # Formato: scrypt$n$r$p$salt_hex$hash_hex (ver app.auth.hash_password)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name:  Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # admin (gerencia usuários e servidores) | operator (edita servidores) |
+    # viewer (somente leitura) — ver hierarquia em app.auth._ROLE_RANK
+    role:          Mapped[str] = mapped_column(
+        String(16), default="admin", server_default="admin", nullable=False
+    )
     is_active:     Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at:    Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -138,6 +143,31 @@ class Metric(Base):
         # Há também um índice GIN (jsonb_path_ops) sobre `metrics`, definido apenas
         # na migração 0002 — é específico do PostgreSQL (SQLite dos testes não tem GIN).
         Index("ix_metrics_server_pilar_collected", "server_id", "pilar", "collected_at"),
+    )
+
+
+class AlertAck(Base):
+    """
+    Reconhecimento de um alerta ativo — chave natural (server_id, pilar, item),
+    a mesma identidade usada por Alert/AlertOut. Não é histórico: um novo upsert
+    substitui o reconhecimento anterior, e a linha perde o sentido (mas não é
+    apagada) quando a condição correspondente normaliza.
+    """
+    __tablename__ = "alert_ack"
+
+    id:        Mapped[int] = mapped_column(primary_key=True)
+    server_id: Mapped[int] = mapped_column(
+        ForeignKey("servers.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    pilar:     Mapped[str] = mapped_column(String(20), nullable=False)
+    item:      Mapped[str] = mapped_column(String(80), nullable=False)
+    acked_by:  Mapped[str] = mapped_column(String(255), nullable=False)
+    acked_at:  Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_alert_ack_server_pilar_item", "server_id", "pilar", "item", unique=True),
     )
 
 

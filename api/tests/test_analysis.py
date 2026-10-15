@@ -132,6 +132,21 @@ def test_server_worst_pilar_wins():
     assert health.pilar_statuses["acesso"] == Status.UNKNOWN
 
 
+def test_server_disabled_pilar_ignores_stale_crit_payload():
+    # Servidor sem backup a monitorar: admin desliga o pilar na config, mas o
+    # último payload salvo (de antes de desligar) ainda era NO_BACKUP_FOUND.
+    # O pilar desligado deve virar "unknown" e não derrubar o servidor pra CRIT.
+    health = evaluate_server(
+        {"operacional": {"cpu": {"usage_pct": 10.0}},
+         "backup": {"backup": {"status": "NO_BACKUP_FOUND", "path": None}}},
+        last_seen_at=_now(),
+        config={"backup": {"enabled": False}},
+    )
+    assert health.pilar_statuses["backup"] == Status.UNKNOWN
+    assert health.status == Status.OK
+    assert not any(a.pilar == "backup" for a in health.alerts)
+
+
 def test_server_offline_precedence():
     old = _now() - datetime.timedelta(hours=2)
     health = evaluate_server(

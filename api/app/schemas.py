@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Pilar = Literal["operacional", "backup", "acesso", "logs"]
 OsFamily = Literal["windows", "linux"]
+Role = Literal["admin", "operator", "viewer"]
 
 
 # ── entrada (ingest) ──────────────────────────────────────────────────────────
@@ -83,6 +84,24 @@ class ServerPatch(BaseModel):
     is_active:    bool | None = None
 
 
+class ServerCreate(BaseModel):
+    """Registro de um novo servidor (POST /api/v1/servers)."""
+    hostname:     str = Field(min_length=1, max_length=255)
+    os_family:    OsFamily
+    display_name: str | None = Field(default=None, max_length=255)
+
+
+class AlertAckIn(BaseModel):
+    """Reconhece o alerta ativo identificado por (pilar, item) num servidor."""
+    pilar: str = Field(min_length=1, max_length=20)
+    item:  str = Field(min_length=1, max_length=80)
+
+
+class AlertAckOut(BaseModel):
+    acked_by: str
+    acked_at: datetime.datetime
+
+
 # ── saída (consultas) ─────────────────────────────────────────────────────────
 
 class ServerOut(BaseModel):
@@ -95,6 +114,12 @@ class ServerOut(BaseModel):
     is_active:    bool
     created_at:   datetime.datetime
     last_seen_at: datetime.datetime | None
+
+
+class ServerCreateOut(BaseModel):
+    """Resposta do registro — o token só existe em claro nesta resposta, uma vez."""
+    server: ServerOut
+    token:  str
 
 
 class MetricOut(BaseModel):
@@ -134,14 +159,57 @@ class LoginIn(BaseModel):
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id:           int
     username:     str
     display_name: str | None
+    role:         Role
+    is_active:    bool
+    created_at:   datetime.datetime
 
 
 class LoginOut(BaseModel):
     token:      str
     expires_at: datetime.datetime
     user:       UserOut
+
+
+class SessionOut(BaseModel):
+    """Uma sessão ativa do usuário logado (GET /api/v1/auth/sessions)."""
+    id:         int
+    created_at: datetime.datetime
+    expires_at: datetime.datetime
+    is_current: bool
+
+
+class UserCreate(BaseModel):
+    """Criação de usuário do dashboard (POST /api/v1/users, admin)."""
+    username:     str = Field(min_length=1, max_length=64)
+    password:     str = Field(min_length=8, max_length=255)
+    display_name: str | None = Field(default=None, max_length=255)
+    role:         Role = "viewer"
+
+
+class UserPatch(BaseModel):
+    """Edição de usuário (PATCH /api/v1/users/{id}, admin). Campos None = não mexe."""
+    display_name: str | None = Field(default=None, max_length=255)
+    role:         Role | None = None
+    is_active:    bool | None = None
+
+
+class PasswordReset(BaseModel):
+    """Admin define uma nova senha para outro usuário, sem saber a atual."""
+    new_password: str = Field(min_length=8, max_length=255)
+
+
+class PasswordChange(BaseModel):
+    """Usuário troca a própria senha — exige a senha atual."""
+    current_password: str = Field(min_length=1, max_length=255)
+    new_password:      str = Field(min_length=8, max_length=255)
+
+
+class SelfProfilePatch(BaseModel):
+    """Usuário edita o próprio nome de exibição (Minha conta) — não o papel/ativo."""
+    display_name: str | None = Field(default=None, max_length=255)
 
 
 # ── overview (motor de análise) ───────────────────────────────────────────────
@@ -154,6 +222,12 @@ class AlertOut(BaseModel):
     detail:       str
     server_id:    int
     hostname:     str
+    # Reconhecimento (Tela de Alertas / Detalhe de Servidor) — None = não reconhecido.
+    acked_by:     str | None = None
+    acked_at:     datetime.datetime | None = None
+    # Melhor esforço: hora da última transição não-OK do servidor (granularidade
+    # por servidor, não por item — ver crud.latest_bad_notification).
+    since:        datetime.datetime | None = None
 
 
 class ServerOverview(BaseModel):
@@ -165,6 +239,13 @@ class ServerOverview(BaseModel):
     pilar_statuses: dict[str, str]
     last_seen_at:   datetime.datetime | None
     agent_version:  str | None
+    # Resumo operacional (pilar "operacional" do último payload) — None quando
+    # o servidor ainda não reportou esse pilar. Alimenta o card do dashboard.
+    cpu_pct:         float | None
+    mem_pct:         float | None
+    disk_pct:        float | None   # pior disco (maior uso) entre os montados
+    uptime_seconds:  float | None
+    cpu_history:     list[float]    # últimas amostras de CPU, ordem cronológica
 
 
 class OverviewKpis(BaseModel):

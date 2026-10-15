@@ -19,7 +19,7 @@ from ..analysis import Status, evaluate_server
 from ..auth import require_dashboard
 from ..config import settings
 from ..database import get_session
-from ..models import Metric, Server
+from ..models import AlertAck, Metric, Server
 from ..schemas import (
     AlertOut,
     OverviewKpis,
@@ -43,8 +43,23 @@ def _latest_agent_version(metrics: list[Metric]) -> str | None:
     return latest.agent_version
 
 
+def _cpu_history(history: list[Metric]) -> list[float]:
+    """Série de uso de CPU (%) das amostras operacionais, já em ordem cronológica."""
+    values = []
+    for m in history:
+        v = (m.metrics.get("cpu") or {}).get("usage_pct")
+        if isinstance(v, (int, float)):
+            values.append(float(v))
+    return values
+
+
 def _build_server_view(
-    server: Server, server_metrics: list[Metric], now: datetime.datetime
+    server: Server,
+    server_metrics: list[Metric],
+    now: datetime.datetime,
+    history: list[Metric] | None = None,
+    acks: dict[tuple[str, str], AlertAck] | None = None,
+    since: datetime.datetime | None = None,
 ) -> tuple[ServerOverview, list[AlertOut]]:
     pilar_metrics = {m.pilar: m.metrics for m in server_metrics}
     health = evaluate_server(
@@ -54,6 +69,15 @@ def _build_server_view(
         now=now,
         config=server.config,
     )
+
+    # Resumo operacional para o card do dashboard — tolerante a chaves ausentes
+    # (CONTRATO.md §3: nunca dict[chave], sempre dict.get(chave)).
+    operacional = pilar_metrics.get("operacional") or {}
+    cpu = operacional.get("cpu") or {}
+    memory = operacional.get("memory") or {}
+    disks = [d for d in (operacional.get("disk") or []) if isinstance(d, dict)]
+    disk_vals = [d["usage_pct"] for d in disks if isinstance(d.get("usage_pct"), (int, float))]
+
     view = ServerOverview(
         id=server.id,
         hostname=server.hostname,
@@ -63,15 +87,23 @@ def _build_server_view(
         pilar_statuses={p: s.value for p, s in health.pilar_statuses.items()},
         last_seen_at=server.last_seen_at,
         agent_version=_latest_agent_version(server_metrics),
+        cpu_pct=cpu.get("usage_pct"),
+        mem_pct=memory.get("usage_pct"),
+        disk_pct=max(disk_vals) if disk_vals else None,
+        uptime_seconds=operacional.get("uptime_seconds"),
+        cpu_history=_cpu_history(history or []),
     )
-    alerts = [
-        AlertOut(
+    alerts = []
+    for a in health.alerts:
+        ack = (acks or {}).get((a.pilar, a.item))
+        alerts.append(AlertOut(
             severity=a.severity, pilar=a.pilar, item=a.item,
             title=a.title, detail=a.detail,
             server_id=server.id, hostname=server.hostname,
-        )
-        for a in health.alerts
-    ]
+            acked_by=ack.acked_by if ack else None,
+            acked_at=ack.acked_at if ack else None,
+            since=since,
+        ))
     return view, alerts
 
 
@@ -80,11 +112,27 @@ async def overview(session: AsyncSession = Depends(get_session)):
     now = datetime.datetime.now(datetime.timezone.utc)
 
     servers = await crud.list_servers(session)
+    server_ids = [s.id for s in servers]
     fleet_latest = await crud.latest_per_pilar_all(session)
+    fleet_history = await crud.recent_operacional_history(session)
+    fleet_acks = await crud.acks_for_servers(session, server_ids)
+    fleet_since = await crud.latest_bad_notification(session, server_ids)
 
     by_server: dict[int, list[Metric]] = defaultdict(list)
     for metric in fleet_latest:
         by_server[metric.server_id].append(metric)
+
+    history_by_server: dict[int, list[Metric]] = defaultdict(list)
+    for metric in fleet_history:
+        history_by_server[metric.server_id].append(metric)
+    for rows in history_by_server.values():
+        rows.sort(key=lambda m: (m.collected_at, m.id))  # cronológico p/ sparkline
+
+    acks_by_server: dict[int, dict[tuple[str, str], AlertAck]] = defaultdict(dict)
+    for ack in fleet_acks:
+        acks_by_server[ack.server_id][(ack.pilar, ack.item)] = ack
+
+    since_by_server: dict[int, datetime.datetime] = {n.server_id: n.created_at for n in fleet_since}
 
     views: list[ServerOverview] = []
     all_alerts: list[AlertOut] = []
@@ -92,7 +140,14 @@ async def overview(session: AsyncSession = Depends(get_session)):
     backups_with_data = 0
 
     for server in servers:
-        view, alerts = _build_server_view(server, by_server.get(server.id, []), now)
+        view, alerts = _build_server_view(
+            server,
+            by_server.get(server.id, []),
+            now,
+            history=history_by_server.get(server.id, []),
+            acks=acks_by_server.get(server.id),
+            since=since_by_server.get(server.id),
+        )
         views.append(view)
         all_alerts.extend(alerts)
 
@@ -132,7 +187,11 @@ async def server_health(server_id: int, session: AsyncSession = Depends(get_sess
 
     now = datetime.datetime.now(datetime.timezone.utc)
     server_metrics = await crud.latest_per_pilar(session, server_id)
-    view, alerts = _build_server_view(server, server_metrics, now)
+    ack_rows = await crud.acks_for_servers(session, [server_id])
+    acks = {(a.pilar, a.item): a for a in ack_rows}
+    bad_notifs = await crud.latest_bad_notification(session, [server_id])
+    since = bad_notifs[0].created_at if bad_notifs else None
+    view, alerts = _build_server_view(server, server_metrics, now, acks=acks, since=since)
 
     return ServerHealthOut(
         id=view.id,

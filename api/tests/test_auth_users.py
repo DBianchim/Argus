@@ -128,6 +128,28 @@ async def test_deactivated_user_invalidates_existing_session(client, session_fac
     assert resp.status_code == 401
 
 
+async def test_patch_me_updates_own_display_name(client, session_factory):
+    await _create_user(session_factory)
+    token = (await _login(client)).json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = await client.patch(
+        "/api/v1/auth/me", json={"display_name": "Novo Nome"}, headers=headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["display_name"] == "Novo Nome"
+
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    assert me.json()["display_name"] == "Novo Nome"
+
+
+async def test_patch_me_rejects_service_token(client):
+    resp = await client.patch(
+        "/api/v1/auth/me", json={"display_name": "X"}, headers=DASHBOARD_HEADERS
+    )
+    assert resp.status_code == 401
+
+
 async def test_service_token_still_works(client):
     # Compatibilidade: o DASHBOARD_TOKEN segue válido para integrações
     resp = await client.get("/api/v1/servers", headers=DASHBOARD_HEADERS)

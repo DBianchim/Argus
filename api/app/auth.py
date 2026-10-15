@@ -144,6 +144,46 @@ async def require_dashboard(
     )
 
 
+# ── permissões (papéis) ────────────────────────────────────────────────────────
+
+# viewer: somente leitura | operator: edita servidores/config | admin: + usuários
+_ROLE_RANK: dict[str, int] = {"viewer": 0, "operator": 1, "admin": 2}
+
+
+def require_role(minimum: str):
+    """
+    Fábrica de dependency: exige sessão de usuário cujo papel seja >= `minimum`
+    na hierarquia viewer < operator < admin. O token de serviço (DASHBOARD_TOKEN)
+    sempre passa — é usado por integrações/automação, equivalente a admin.
+    """
+
+    async def _dependency(
+        authorization: str | None = Header(default=None),
+        session: AsyncSession = Depends(get_session),
+    ) -> None:
+        token = _extract_bearer(authorization)
+        if hmac.compare_digest(token, settings.dashboard_token):
+            return
+        resolved = await _resolve_session(session, token)
+        if resolved is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Sessão inválida ou expirada",
+            )
+        _, user = resolved
+        if _ROLE_RANK.get(user.role, -1) < _ROLE_RANK[minimum]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permissão insuficiente para esta ação",
+            )
+
+    return _dependency
+
+
+require_operator = require_role("operator")
+require_admin = require_role("admin")
+
+
 async def get_current_user(
     authorization: str | None = Header(default=None),
     session: AsyncSession = Depends(get_session),

@@ -253,6 +253,14 @@ def evaluate_server(
     alerts: list[Alert] = []
 
     for pilar in PILARES:
+        # Pilar desligado na config (ex.: servidor sem backup a monitorar) ignora
+        # qualquer payload — inclusive um payload antigo (CRIT) de antes do pilar
+        # ter sido desligado, que senão ficaria "preso" como último estado para sempre.
+        pilar_cfg = (config or {}).get(pilar) or {}
+        if pilar_cfg.get("enabled") is False:
+            pilar_statuses[pilar] = Status.UNKNOWN
+            continue
+
         if pilar in pilar_metrics:
             status, pilar_alerts = evaluate_pilar(pilar, pilar_metrics[pilar], config)
             pilar_statuses[pilar] = status

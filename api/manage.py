@@ -9,41 +9,37 @@ Comandos:
     create-user     — cria um usuário do dashboard (senha via prompt seguro)
     list-users      — lista os usuários
     deactivate-user — desativa um usuário (login passa a falhar)
+    set-role        — muda o papel de um usuário (admin/operator/viewer)
+
+Papéis (permissões):
+    admin    — gerencia usuários e servidores (tudo)
+    operator — edita/remove servidores e config, mas não gerencia usuários
+    viewer   — somente leitura
 
 Uso (a partir de api/):
     python manage.py create-server --hostname DESKTOP --os windows
-    python manage.py create-user --username david
+    python manage.py create-user --username david --role admin
     python manage.py list-users
+    python manage.py set-role --username david --role operator
 """
 
 import argparse
 import asyncio
 import getpass
-import secrets
 
 from sqlalchemy import select, update
 
-from app.auth import hash_password, hash_token
-from app.config_defaults import default_config
+from app import crud
+from app.auth import hash_password
 from app.database import SessionLocal
 from app.models import Server, User
 
 
 async def _create_server(hostname: str, os_family: str, display_name: str | None) -> None:
-    token = secrets.token_urlsafe(32)
     async with SessionLocal() as session:
-        server = Server(
-            hostname=hostname,
-            os_family=os_family,
-            display_name=display_name,
-            api_token_hash=hash_token(token),
-            is_active=True,
-            config=default_config(os_family),
-            config_version=1,
+        server, token = await crud.create_server(
+            session, hostname=hostname, os_family=os_family, display_name=display_name,
         )
-        session.add(server)
-        await session.commit()
-        await session.refresh(server)
         server_id = server.id
 
     print("Servidor registrado com sucesso:")
@@ -83,7 +79,7 @@ async def _revoke_server(server_id: int) -> None:
         print(f"Servidor {server_id} nao encontrado.")
 
 
-async def _create_user(username: str, display_name: str | None) -> None:
+async def _create_user(username: str, display_name: str | None, role: str) -> None:
     # Senha via prompt oculto — nunca em argv (visível no histórico do shell)
     password = getpass.getpass("Senha do novo usuario: ")
     confirm = getpass.getpass("Confirme a senha: ")
@@ -105,11 +101,12 @@ async def _create_user(username: str, display_name: str | None) -> None:
             username=username,
             password_hash=hash_password(password),
             display_name=display_name,
+            role=role,
             is_active=True,
         )
         session.add(user)
         await session.commit()
-    print(f"Usuario '{username}' criado. Login disponivel no dashboard.")
+    print(f"Usuario '{username}' criado com papel '{role}'. Login disponivel no dashboard.")
 
 
 async def _list_users() -> None:
@@ -118,11 +115,12 @@ async def _list_users() -> None:
     if not rows:
         print("Nenhum usuario cadastrado. Use: python manage.py create-user --username <nome>")
         return
-    print(f"{'id':>3}  {'username':<20} {'ativo':<6} {'criado_em'}")
-    print("-" * 55)
+    print(f"{'id':>3}  {'username':<20} {'papel':<10} {'ativo':<6} {'criado_em'}")
+    print("-" * 65)
     for u in rows:
         created = u.created_at.strftime("%Y-%m-%d") if u.created_at else "-"
-        print(f"{u.id:>3}  {u.username:<20} {'sim' if u.is_active else 'nao':<6} {created}")
+        print(f"{u.id:>3}  {u.username:<20} {u.role:<10} "
+              f"{'sim' if u.is_active else 'nao':<6} {created}")
 
 
 async def _deactivate_user(username: str) -> None:
@@ -133,6 +131,18 @@ async def _deactivate_user(username: str) -> None:
         await session.commit()
     if result.rowcount:
         print(f"Usuario '{username}' desativado (sessoes existentes deixam de valer).")
+    else:
+        print(f"Usuario '{username}' nao encontrado.")
+
+
+async def _set_role(username: str, role: str) -> None:
+    async with SessionLocal() as session:
+        result = await session.execute(
+            update(User).where(User.username == username).values(role=role)
+        )
+        await session.commit()
+    if result.rowcount:
+        print(f"Usuario '{username}' agora tem o papel '{role}'.")
     else:
         print(f"Usuario '{username}' nao encontrado.")
 
@@ -155,11 +165,18 @@ def main() -> None:
     p_user = sub.add_parser("create-user", help="Cria um usuario do dashboard")
     p_user.add_argument("--username", required=True)
     p_user.add_argument("--display-name", default=None)
+    p_user.add_argument("--role", default="admin",
+                        choices=["admin", "operator", "viewer"])
 
     sub.add_parser("list-users", help="Lista os usuarios do dashboard")
 
     p_deact = sub.add_parser("deactivate-user", help="Desativa um usuario")
     p_deact.add_argument("--username", required=True)
+
+    p_role = sub.add_parser("set-role", help="Muda o papel de um usuario")
+    p_role.add_argument("--username", required=True)
+    p_role.add_argument("--role", required=True,
+                        choices=["admin", "operator", "viewer"])
 
     args = parser.parse_args()
 
@@ -170,11 +187,13 @@ def main() -> None:
     elif args.command == "revoke-server":
         asyncio.run(_revoke_server(args.server_id))
     elif args.command == "create-user":
-        asyncio.run(_create_user(args.username, args.display_name))
+        asyncio.run(_create_user(args.username, args.display_name, args.role))
     elif args.command == "list-users":
         asyncio.run(_list_users())
     elif args.command == "deactivate-user":
         asyncio.run(_deactivate_user(args.username))
+    elif args.command == "set-role":
+        asyncio.run(_set_role(args.username, args.role))
 
 
 if __name__ == "__main__":
