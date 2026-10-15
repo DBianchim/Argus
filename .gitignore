@@ -43,3 +43,8 @@ dist-ssr/
 .idea/
 .DS_Store
 Thumbs.db
+
+# ── Material local (não versionar) ───────────────────────────────────────────
+/docs/
+/Elabore um designer profissional para argus-handoff.zip
+*.zip

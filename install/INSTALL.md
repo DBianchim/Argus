@@ -17,6 +17,9 @@ docker compose exec api python manage.py create-server --hostname SRV-WEB-01 --o
 # ⮕ copie o token retornado
 ```
 
+Alternativa: no dashboard, **Configurações → Adicionar servidor** (requer papel
+`operator` ou `admin`). O token também é exibido uma única vez.
+
 ---
 
 ## Passo 2 — No servidor monitorado: um comando

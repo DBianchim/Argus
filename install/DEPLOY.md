@@ -94,14 +94,20 @@ docker compose logs api    # deve mostrar "Migrations OK" e o loop de OFFLINE
 ### 3. Criar o primeiro usuário e registrar servidores
 
 ```bash
-# Usuário de login do dashboard (senha pedida de forma segura no terminal):
-docker compose exec api python manage.py create-user --username admin
+# Primeiro administrador do dashboard (senha pedida de forma segura no terminal):
+docker compose exec api python manage.py create-user --username admin --role admin
 
 # Registrar cada servidor monitorado — o token é exibido UMA vez, copie-o:
 docker compose exec api python manage.py create-server --hostname SRV01 --os linux
 ```
 
 Use o token retornado ao instalar o agente naquele servidor (ver abaixo).
+
+Após o primeiro acesso, servidores e usuários também podem ser gerenciados pelo
+dashboard: **Configurações → Adicionar servidor** (papel `operator` ou `admin`) e
+**Minha conta → Usuários** (somente `admin`). Papéis disponíveis: `viewer`
+(somente leitura), `operator` (gerencia servidores e configuração) e `admin`
+(inclui gestão de usuários).
 
 ### 4. Acessar
 
