@@ -22,6 +22,20 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        // Usadas na tela "Dashboard" (visão geral) — demais telas seguem Inter
+        // até o resto do redesenho ser implementado.
+        "plex-sans": ["'IBM Plex Sans'", "system-ui", "sans-serif"],
+        "plex-mono": ["'IBM Plex Mono'", "ui-monospace", "monospace"],
+      },
+      keyframes: {
+        "status-pulse": {
+          "0%, 100%": { opacity: 1 },
+          "50%": { opacity: 0.35 },
+        },
+      },
+      animation: {
+        // Dot de servidor crítico no card do dashboard
+        "status-pulse": "status-pulse 1.6s ease-in-out infinite",
       },
     },
   },

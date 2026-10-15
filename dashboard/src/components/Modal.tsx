@@ -16,11 +16,11 @@ export function Modal({ title, children, onClose, footer }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-surface-border bg-surface-raised p-6 shadow-xl"
+        className="w-full max-w-md rounded-xl border border-[#272c3a] bg-[#1a1d27] p-6 font-plex-sans shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold text-slate-100">{title}</h3>
-        <div className="mt-3 text-sm text-slate-300">{children}</div>
+        <h3 className="text-base font-semibold text-[#e2e6f0]">{title}</h3>
+        <div className="mt-3 text-sm text-[#8b93a7]">{children}</div>
         {footer && <div className="mt-6 flex justify-end gap-3">{footer}</div>}
       </div>
     </div>

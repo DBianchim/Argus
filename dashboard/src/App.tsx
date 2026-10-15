@@ -1,10 +1,13 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { getToken } from "./api/client";
+import { getStoredUser, getToken } from "./api/client";
 import { Toaster } from "./components/Toaster";
+import { Account } from "./pages/Account";
+import { Alertas } from "./pages/Alertas";
 import { Login } from "./pages/Login";
 import { Overview } from "./pages/Overview";
-import { ServerConfig } from "./pages/ServerConfig";
 import { ServerDetail } from "./pages/ServerDetail";
+import { Servidores } from "./pages/Servidores";
+import { Settings } from "./pages/Settings";
 
 function Protected({ children }: { children: React.ReactNode }) {
   if (!getToken()) {
@@ -17,6 +20,13 @@ function Protected({ children }: { children: React.ReactNode }) {
       <Toaster />
     </>
   );
+}
+
+function RequireOperator({ children }: { children: React.ReactNode }) {
+  if (getStoredUser()?.role === "viewer") {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
 }
 
 export function App() {
@@ -32,6 +42,14 @@ export function App() {
         }
       />
       <Route
+        path="/servers"
+        element={
+          <Protected>
+            <Servidores />
+          </Protected>
+        }
+      />
+      <Route
         path="/servers/:id"
         element={
           <Protected>
@@ -40,10 +58,28 @@ export function App() {
         }
       />
       <Route
-        path="/servers/:id/config"
+        path="/alerts"
         element={
           <Protected>
-            <ServerConfig />
+            <Alertas />
+          </Protected>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <Protected>
+            <RequireOperator>
+              <Settings />
+            </RequireOperator>
+          </Protected>
+        }
+      />
+      <Route
+        path="/account"
+        element={
+          <Protected>
+            <Account />
           </Protected>
         }
       />

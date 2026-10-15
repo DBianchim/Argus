@@ -1,6 +1,6 @@
 // Client HTTP do dashboard: anexa o token de sessão e trata 401 globalmente.
 
-import type { LoginOut } from "../types";
+import type { LoginOut, Role, ServerCreateOut, SessionOut, UserOut } from "../types";
 
 const TOKEN_KEY = "argus_token";
 const USER_KEY = "argus_user";
@@ -9,9 +9,13 @@ export function getToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY);
 }
 
-export function getStoredUser(): { username: string; display_name: string | null } | null {
+export function getStoredUser(): UserOut | null {
   const raw = sessionStorage.getItem(USER_KEY);
   return raw ? JSON.parse(raw) : null;
+}
+
+export function isAdmin(): boolean {
+  return getStoredUser()?.role === "admin";
 }
 
 export function storeSession(login: LoginOut): void {
@@ -74,4 +78,101 @@ export async function logout(): Promise<void> {
   } finally {
     clearSession();
   }
+}
+
+export async function patchOwnProfile(displayName: string | null): Promise<UserOut> {
+  const user = await api<UserOut>("/api/v1/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify({ display_name: displayName }),
+  });
+  // Mantém sessionStorage em sincronia (RoleBadge/Sidebar leem de lá, não da rede)
+  const login = getStoredUser();
+  if (login) {
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+  return user;
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<LoginOut> {
+  return api<LoginOut>("/api/v1/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}
+
+// ── gerenciamento de usuarios (admin) ──────────────────────────────────────────
+
+export interface UserCreateInput {
+  username: string;
+  password: string;
+  display_name?: string | null;
+  role: Role;
+}
+
+export interface UserPatchInput {
+  display_name?: string | null;
+  role?: Role;
+  is_active?: boolean;
+}
+
+export function listUsers(): Promise<UserOut[]> {
+  return api<UserOut[]>("/api/v1/users");
+}
+
+export function createUser(body: UserCreateInput): Promise<UserOut> {
+  return api<UserOut>("/api/v1/users", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function patchUser(id: number, body: UserPatchInput): Promise<UserOut> {
+  return api<UserOut>(`/api/v1/users/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function deleteUser(id: number): Promise<void> {
+  return api(`/api/v1/users/${id}`, { method: "DELETE" });
+}
+
+export function resetPassword(id: number, newPassword: string): Promise<void> {
+  return api(`/api/v1/users/${id}/reset-password`, {
+    method: "POST",
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+}
+
+// ── servidores (registro e reconhecimento de alertas) ──────────────────────────
+
+export interface ServerCreateInput {
+  hostname: string;
+  os_family: "windows" | "linux";
+  display_name?: string | null;
+}
+
+export function registerServer(body: ServerCreateInput): Promise<ServerCreateOut> {
+  return api<ServerCreateOut>("/api/v1/servers", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function ackAlert(
+  serverId: number,
+  pilar: string,
+  item: string,
+): Promise<{ acked_by: string; acked_at: string }> {
+  return api(`/api/v1/servers/${serverId}/alerts/ack`, {
+    method: "POST",
+    body: JSON.stringify({ pilar, item }),
+  });
+}
+
+// ── sessões (Minha conta) ───────────────────────────────────────────────────────
+
+export function listSessions(): Promise<SessionOut[]> {
+  return api<SessionOut[]>("/api/v1/auth/sessions");
+}
+
+export function revokeSession(id: number): Promise<void> {
+  return api(`/api/v1/auth/sessions/${id}`, { method: "DELETE" });
 }

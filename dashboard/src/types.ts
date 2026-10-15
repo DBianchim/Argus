@@ -3,16 +3,28 @@
 
 export type StatusValue = "ok" | "warn" | "crit" | "offline" | "unknown";
 export type Pilar = "operacional" | "backup" | "acesso" | "logs";
+export type Role = "admin" | "operator" | "viewer";
 
 export interface UserOut {
+  id: number;
   username: string;
   display_name: string | null;
+  role: Role;
+  is_active: boolean;
+  created_at: string;
 }
 
 export interface LoginOut {
   token: string;
   expires_at: string;
   user: UserOut;
+}
+
+export interface SessionOut {
+  id: number;
+  created_at: string;
+  expires_at: string;
+  is_current: boolean;
 }
 
 export interface ServerOut {
@@ -23,6 +35,11 @@ export interface ServerOut {
   is_active: boolean;
   created_at: string;
   last_seen_at: string | null;
+}
+
+export interface ServerCreateOut {
+  server: ServerOut;
+  token: string;
 }
 
 // Config do agente gerenciada pela central (api/app/config_defaults.py).
@@ -82,6 +99,9 @@ export interface AlertOut {
   detail: string;
   server_id: number;
   hostname: string;
+  acked_by: string | null;
+  acked_at: string | null;
+  since: string | null;
 }
 
 export interface ServerOverview {
@@ -93,6 +113,12 @@ export interface ServerOverview {
   pilar_statuses: Record<string, StatusValue>;
   last_seen_at: string | null;
   agent_version: string | null;
+  // Resumo operacional do último payload — null quando o pilar ainda não foi reportado.
+  cpu_pct: number | null;
+  mem_pct: number | null;
+  disk_pct: number | null;
+  uptime_seconds: number | null;
+  cpu_history: number[];
 }
 
 export interface OverviewKpis {
