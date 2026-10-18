@@ -85,6 +85,57 @@ def test_backup_missing_is_unknown():
     assert status == Status.UNKNOWN
 
 
+def test_backup_unknown_status_is_not_ok():
+    # Status de um agente mais novo que a central: não pode virar "saudável"
+    status, alerts = evaluate_backup({"backup": {"status": "PARTIAL"}})
+    assert status == Status.UNKNOWN and alerts == []
+
+
+def test_backup_stagnant_flag_is_warn():
+    # Agente novo: status WARN + integrity.stagnant (campos aditivos)
+    status, alerts = evaluate_backup({"backup": {
+        "status": "WARN",
+        "integrity": {"integrity_check": "WARN", "stagnant": True,
+                      "sha256": "a" * 64, "previous_sha256": "a" * 64},
+    }})
+    assert status == Status.WARN
+    assert alerts[0].severity == "warn" and "estagnado" in alerts[0].title
+
+
+def test_backup_stagnant_flag_with_ok_status_still_warns():
+    # Defesa em profundidade: o motor lê o detalhe, não só o status do agente
+    status, _ = evaluate_backup({"backup": {
+        "status": "OK", "integrity": {"integrity_check": "OK", "stagnant": True}}})
+    assert status == Status.WARN
+
+
+def test_backup_integrity_error_is_warn_not_ok():
+    # Agente antigo mascarava ERROR como status "OK"; o novo envia WARN.
+    for agent_status in ("OK", "WARN"):
+        status, alerts = evaluate_backup({"backup": {
+            "status": agent_status,
+            "integrity": {"integrity_check": "ERROR",
+                          "detail": "Sem permissao para ler o arquivo"},
+        }})
+        assert status == Status.WARN, agent_status
+        assert alerts[0].item == "integrity"
+        assert "permissao" in alerts[0].detail
+
+
+def test_backup_sla_breach_wins_over_integrity_error():
+    status, alerts = evaluate_backup({"backup": {
+        "status": "SLA_BREACH", "age_hours": 50, "sla_hours": 26,
+        "integrity": {"integrity_check": "ERROR"}}})
+    assert status == Status.CRIT and "50h" in alerts[0].detail
+
+
+def test_backup_old_payload_without_integrity_still_works():
+    # Payload do agente anterior (sem os campos novos)
+    assert evaluate_backup({"backup": {"status": "OK", "integrity": {"integrity_check": "OK",
+                                                                      "sha256": "x"}}})[0] == Status.OK
+    assert evaluate_backup({"backup": {"status": "WARN"}})[0] == Status.WARN
+
+
 # ── acesso / logs (findings) ──────────────────────────────────────────────────
 
 def test_findings_warning_and_error_are_warn():

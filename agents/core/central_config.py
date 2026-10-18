@@ -21,15 +21,14 @@ import os
 import requests
 
 from core.config_loader import AgentConfig
+from core.sysutils import state_file_path
 
 logger = logging.getLogger(__name__)
 
 
 def _cache_path(config: AgentConfig) -> str:
     """config_cache.json ao lado da pasta da fila local."""
-    queue_dir = config.retry.queue_path
-    base = os.path.dirname(queue_dir.rstrip('/\\')) or queue_dir
-    return os.path.join(base, 'config_cache.json')
+    return state_file_path(config.retry.queue_path, 'config_cache.json')
 
 
 def fetch_config(config: AgentConfig) -> tuple[dict | None, int | None]:

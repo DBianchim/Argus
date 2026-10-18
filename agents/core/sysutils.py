@@ -18,6 +18,7 @@ Autores: Equipe de Infraestrutura
 
 import datetime
 import logging
+import os
 import platform
 import subprocess
 
@@ -29,7 +30,25 @@ logger = logging.getLogger(__name__)
 # Versao unica do pacote de agentes, enviada em cada payload (agent_version).
 # Incremente a cada release que altere a coleta ou o contrato (ver CONTRATO.md
 # na raiz do projeto). E a fonte unica: runner.py e os 4 agentes leem daqui.
-AGENT_VERSION = '1.0.0'
+AGENT_VERSION = '1.1.0'
+
+
+# ── arquivos de estado ────────────────────────────────────────────────────────
+
+def state_file_path(queue_path: str, filename: str) -> str:
+    """
+    Caminho de um arquivo de estado do agente, ao lado da pasta da fila local.
+
+    O estado persistente do agente (cache de config, ultimo backup observado)
+    vive fora dos diretorios monitorados, no mesmo diretorio pai de
+    config.retry.queue_path. Nao cria nada em disco — apenas calcula o caminho.
+
+    Args:
+        queue_path: Valor de config.retry.queue_path.
+        filename:   Nome do arquivo de estado (ex: 'backup_state.json').
+    """
+    base = os.path.dirname(queue_path.rstrip('/\\')) or queue_path
+    return os.path.join(base, filename)
 
 
 # ── tempo ─────────────────────────────────────────────────────────────────────

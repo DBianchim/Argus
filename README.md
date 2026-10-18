@@ -22,7 +22,7 @@ problema — apenas reportam o estado.
 | Pilar | Coleta |
 |-------|--------|
 | **operacional** | CPU, memória, disco, serviços críticos, uptime |
-| **backup** | Existência, SLA, integridade (tamanho, estrutura, SHA-256) e log dos backups |
+| **backup** | Existência, SLA, integridade (tamanho, estrutura, SHA-256), estagnação (backup novo com hash idêntico ao anterior) e log dos backups |
 | **acesso** | Logins SSH/Windows, sudo, configuração do SSH, auditd/auditpol, mudanças de conta |
 | **logs** | Integridade de syslog/journald/Event Log, retenção, lacunas, limpeza de log |
 

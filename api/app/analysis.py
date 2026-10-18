@@ -151,10 +151,26 @@ def evaluate_backup(metrics: dict) -> tuple[Status, list[Alert]]:
                   else str(backup.get("path") or ""))
         return Status.CRIT, [Alert("crit", "backup", "status",
                                    titles[status_str], detail)]
-    if status_str == "WARN":
+
+    # Sinais de integridade (campos aditivos, lidos com .get()). Agentes antigos
+    # mascaravam integrity_check='ERROR' como status 'OK'; ler o detalhe aqui
+    # recupera o aviso sem depender da versão do agente.
+    integrity = backup.get("integrity") or {}
+    integrity_check = integrity.get("integrity_check")
+
+    if integrity_check == "ERROR":
+        return Status.WARN, [Alert("warn", "backup", "integrity",
+                                   "Integridade do backup não verificada",
+                                   str(integrity.get("detail") or "Erro ao ler o backup"))]
+    if status_str == "WARN" or integrity_check == "WARN" or integrity.get("stagnant") is True:
         return Status.WARN, [Alert("warn", "backup", "status", titles["WARN"],
-                                   "Hash idêntico ao backup anterior")]
-    return Status.OK, []
+                                   "Backup novo com hash idêntico ao backup anterior")]
+
+    if status_str == "OK":
+        return Status.OK, []
+    # Status que esta versão da central não conhece (agente mais novo): não
+    # declara saudável sem saber — UNKNOWN, sem alerta (regra aditiva, CONTRATO §3).
+    return Status.UNKNOWN, []
 
 
 def evaluate_findings(pilar: str, metrics: dict, config: dict | None = None) -> tuple[Status, list[Alert]]:

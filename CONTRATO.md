@@ -87,3 +87,30 @@ de ativar o agente novo na frota (API tolera primeiro, agente envia depois).
   - **patch** (1.0.x): correções sem mudança de payload;
   - **minor** (1.x.0): chaves novas (aditivas);
   - **major** (x.0.0): processo de depreciação concluído (remoção de chave antiga).
+
+## 6. Pilar `backup`: campos de integridade e estagnação (1.1.0)
+
+Chaves **aditivas** em `metrics.backup.integrity`, enviadas pelo agente a partir da
+`AGENT_VERSION` 1.1.0. Todas são opcionais para a central (`.get()`); agentes anteriores
+não as enviam e continuam sendo aceitos.
+
+| Chave | Tipo | Significado |
+|-------|------|-------------|
+| `sha256` | string | Hash do backup mais recente (já existia) |
+| `previous_sha256` | string \| null | Hash do backup observado antes dele; `null` na primeira observação |
+| `stagnant` | boolean | `true` quando o backup é **novo** (caminho diferente, ou mesmo caminho com mtime/tamanho alterados) mas tem o **mesmo** SHA-256 do anterior |
+| `hash_source` | `computed` \| `cached` | `cached` = mesmo arquivo, inalterado, hash reaproveitado do estado do agente |
+| `state_warning` | string | Só presente se o agente não conseguiu gravar seu estado local |
+
+Semântica:
+
+- Observar o **mesmo arquivo inalterado** em ciclos consecutivos **não** é estagnação — a
+  idade do backup é tratada pelo SLA (`SLA_BREACH`). Um backup marcado `stagnant` continua
+  assim até chegar um backup novo com conteúdo diferente.
+- O agente guarda o último backup observado em `backup_state.json`, ao lado da fila local
+  (`retry.queue_path`), nunca no diretório monitorado.
+- `integrity.integrity_check = "ERROR"` (ex.: leitura negada) deixa de ser mascarado: o
+  `status` do pilar passa a `WARN` e o motor da central gera o alerta
+  "Integridade do backup não verificada" com o `detail`. A central também aplica essa regra
+  a payloads de agentes anteriores que enviaram `ERROR` com `status: "OK"`.
+- `status` desconhecido para a central é avaliado como `unknown` (sem alerta), e não mais `ok`.
