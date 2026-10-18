@@ -11,12 +11,18 @@ Responsabilidade:
 Camadas de verificacao:
     1. Existencia   â€” ha algum arquivo de backup nos diretorios configurados?
     2. SLA          â€” o backup foi gerado dentro do prazo maximo permitido?
-    3. Integridade  â€” o arquivo esta integro (tamanho, estrutura, hash SHA256)?
+    3. Integridade  â€” o arquivo esta integro (tamanho, estrutura, hash SHA256)
+                      e o backup mais recente difere do anterior (estagnacao)?
     4. Log          â€” a ferramenta de backup reportou sucesso no log de execucao?
 
 Suporte de plataforma:
     - Windows: verifica caminhos definidos em config.toml -> [backup].paths_windows
     - Linux:   verifica caminhos definidos em config.toml -> [backup].paths_linux
+
+Estado:
+    - O ultimo backup observado (caminho, mtime, tamanho, SHA256) fica em
+      'backup_state.json', ao lado da fila local (retry.queue_path) - nunca no
+      diretorio de backup, que pode ser somente leitura.
 
 Seguranca:
     - Nenhum subprocesso e utilizado â€” toda coleta e feita via APIs Python
@@ -28,6 +34,7 @@ Autores: David Bianchim
 import glob
 import hashlib
 import json
+import logging
 import os
 import time
 import tarfile
@@ -35,7 +42,9 @@ import zipfile
 
 from core.config_loader import AgentConfig, load_config
 # Utilitarios compartilhados (DRY): now_iso e detect_os.
-from core.sysutils import AGENT_VERSION, now_iso, detect_os
+from core.sysutils import AGENT_VERSION, now_iso, detect_os, state_file_path
+
+logger = logging.getLogger(__name__)
 
 # â”€â”€ constante de plataforma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -144,51 +153,180 @@ def _check_structure(filepath: str) -> dict:
     return {'method': 'size_only'}
 
 
-def _check_hash(filepath: str) -> dict:
-    """
-    Camada 3: compara o hash SHA256 atual com o da execucao anterior.
+# -- estado persistente (ultimo backup observado) ----------------------------------------
 
-    O hash anterior e armazenado em um arquivo sidecar '<backup>.sha256'
-    no mesmo diretorio. Isso permite detectar backups que existem mas
-    nao foram atualizados â€” cenario de falha silenciosa comum em
-    agendadores com erro de configuracao.
+STATE_FILENAME = 'backup_state.json'
+_STATE_VERSION = 1
+
+_STAGNANT_DETAIL = (
+    'Backup novo com SHA256 identico ao backup anterior '
+    '- o conteudo nao mudou entre as duas execucoes'
+)
+
+
+def _is_sha256(value) -> bool:
+    """True se value e uma string hexadecimal de 64 caracteres."""
+    return (isinstance(value, str) and len(value) == 64
+            and all(c in '0123456789abcdef' for c in value.lower()))
+
+
+def _file_signature(filepath: str) -> dict:
+    """
+    Assinatura barata de um arquivo: caminho, mtime (ns) e tamanho (bytes).
+
+    Dois estados com a mesma assinatura sao tratados como o MESMO arquivo,
+    inalterado, o que dispensa recalcular o SHA256 (caro em arquivos grandes).
+    """
+    st = os.stat(filepath)
+    return {'path': filepath, 'mtime_ns': st.st_mtime_ns, 'size': st.st_size}
+
+
+def load_state(state_path: str | None) -> dict | None:
+    """
+    Le o ultimo backup observado do arquivo de estado.
+
+    Tolerante a ausencia e a corrupcao: nunca levanta excecao. Retorna None
+    quando nao ha estado utilizavel (primeira execucao, arquivo invalido ou
+    caminho de estado nao configurado) - o chamador trata como primeira
+    observacao.
+
+    Returns:
+        Dicionario com path, mtime_ns, size, sha256, previous_sha256 e
+        stagnant, ou None.
+    """
+    if not state_path:
+        return None
+    try:
+        with open(state_path, 'r', encoding='utf-8') as f:
+            last = json.load(f)['last']
+        entry = {
+            'path':            last['path'],
+            'mtime_ns':        last['mtime_ns'],
+            'size':            last['size'],
+            'sha256':          last['sha256'],
+            'previous_sha256': last.get('previous_sha256'),
+            'stagnant':        bool(last.get('stagnant', False)),
+        }
+        valid = (
+            isinstance(entry['path'], str)
+            and isinstance(entry['mtime_ns'], int)
+            and isinstance(entry['size'], int)
+            and _is_sha256(entry['sha256'])
+            and (entry['previous_sha256'] is None or _is_sha256(entry['previous_sha256']))
+        )
+        if not valid:
+            raise ValueError('campos invalidos')
+        return entry
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        logger.warning('Estado do backup invalido, sera recriado | erro=%s', type(e).__name__)
+        return None
+
+
+def save_state(state_path: str, entry: dict) -> str | None:
+    """
+    Grava o ultimo backup observado de forma atomica (tmp + os.replace).
+
+    A escrita atomica evita deixar um JSON truncado se o agente for
+    encerrado no meio da gravacao.
+
+    Returns:
+        None em sucesso; mensagem de erro (str) em falha - nunca levanta.
+    """
+    tmp_path = f'{state_path}.{os.getpid()}.tmp'
+    try:
+        os.makedirs(os.path.dirname(state_path) or '.', exist_ok=True)
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump({'version': _STATE_VERSION, 'last': entry}, f)
+        os.replace(tmp_path, state_path)
+        return None
+    except OSError as e:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+        return str(e)
+
+
+def _check_hash(filepath: str, previous: dict | None, signature: dict) -> dict:
+    """
+    Camada 3: detecta backup estagnado comparando o SHA256 com o do backup
+    anterior observado.
+
+    'previous' e a ultima observacao gravada no arquivo de estado (ver
+    load_state). Estagnado significa: o backup mais recente e uma observacao
+    NOVA (caminho diferente, ou mesmo caminho com mtime/tamanho alterados)
+    mas com SHA256 identico ao da observacao anterior - cenario de falha
+    silenciosa comum em agendadores mal configurados (o job roda, mas gera o
+    mesmo conteudo de sempre).
+
+    Observar o MESMO arquivo, inalterado, em ciclos consecutivos nao e
+    estagnacao: a idade do backup e coberta pelo SLA. Nesse caso o hash
+    guardado e reutilizado (sem reler o arquivo) e o veredito da observacao
+    e mantido - um backup estagnado continua em WARN ate chegar um backup
+    novo com conteudo diferente.
 
     Resultados possiveis:
-        OK   â†’ hash diferente do anterior (backup foi atualizado)
-        OK   â†’ nenhum hash anterior encontrado (primeira execucao)
-        WARN â†’ hash identico ao anterior (backup pode estar estagnado)
+        OK   -> primeira observacao (sem referencia anterior)
+        OK   -> SHA256 diferente do backup anterior
+        OK   -> mesmo arquivo, inalterado, ja considerado saudavel
+        WARN -> backup novo com SHA256 identico ao anterior (estagnado)
+
+    O dicionario inclui 'sha256', 'previous_sha256', 'stagnant' e
+    'hash_source' ('computed' | 'cached'). A gravacao do estado e feita por
+    check_backup_files, nao aqui.
 
     Args:
-        filepath: Caminho absoluto do arquivo de backup.
+        filepath:  Caminho absoluto do arquivo de backup.
+        previous:  Ultima observacao gravada, ou None na primeira execucao.
+        signature: Assinatura atual do arquivo (ver _file_signature).
     """
-    sha256    = compute_sha256(filepath)
-    hash_file = filepath + '.sha256'
+    # Mesmo arquivo, inalterado: reaproveita hash e veredito guardados
+    if previous and all(previous[k] == signature[k] for k in ('path', 'mtime_ns', 'size')):
+        stagnant = previous['stagnant']
+        result = {
+            'integrity_check': 'WARN' if stagnant else 'OK',
+            'sha256':          previous['sha256'],
+            'previous_sha256': previous['previous_sha256'],
+            'stagnant':        stagnant,
+            'hash_source':     'cached',
+        }
+        if stagnant:
+            result['detail'] = _STAGNANT_DETAIL
+        return result
 
-    if os.path.exists(hash_file):
-        with open(hash_file, 'r', encoding='utf-8') as f:
-            previous_hash = f.read().strip()
+    sha256 = compute_sha256(filepath)
 
-        if sha256 == previous_hash:
-            return {
-                'integrity_check': 'WARN',
-                'sha256':          sha256,
-                'detail':          'Hash identico ao backup anterior â€” arquivo pode nao ter sido atualizado',
-            }
+    if previous is None:
+        return {
+            'integrity_check': 'OK',
+            'sha256':          sha256,
+            'previous_sha256': None,
+            'stagnant':        False,
+            'hash_source':     'computed',
+            'detail':          'Primeira observacao do backup (sem referencia anterior)',
+        }
 
-        return {'integrity_check': 'OK', 'sha256': sha256}
-
-    # Primeira execucao: persiste o hash para comparacao futura
-    with open(hash_file, 'w', encoding='utf-8') as f:
-        f.write(sha256)
-
-    return {
-        'integrity_check': 'OK',
+    stagnant = sha256 == previous['sha256']
+    result = {
+        'integrity_check': 'WARN' if stagnant else 'OK',
         'sha256':          sha256,
-        'detail':          'Hash gerado pela primeira vez',
+        'previous_sha256': previous['sha256'],
+        'stagnant':        stagnant,
+        'hash_source':     'computed',
     }
+    if stagnant:
+        result['detail'] = _STAGNANT_DETAIL
+    return result
 
 
-def verify_file_integrity(filepath: str, min_size_mb: int) -> dict:
+def verify_file_integrity(
+    filepath: str,
+    min_size_mb: int,
+    previous: dict | None = None,
+    signature: dict | None = None,
+) -> dict:
     """
     Orquestra a verificacao de integridade em 3 camadas progressivas.
 
@@ -199,32 +337,37 @@ def verify_file_integrity(filepath: str, min_size_mb: int) -> dict:
     Camadas:
         1. Tamanho minimo       (_check_size)
         2. Estrutura por tipo   (_check_structure)
-        3. Hash SHA256          (_check_hash)
+        3. Hash SHA256 vs backup anterior (_check_hash)
 
     Args:
         filepath:    Caminho absoluto do arquivo de backup.
         min_size_mb: Tamanho minimo em MB, lido do config.toml.
+        previous:    Ultima observacao gravada (load_state); None = primeira.
+        signature:   Assinatura do arquivo (_file_signature); calculada aqui
+                     se omitida.
 
     Returns:
         Dicionario com 'integrity_check' (OK | WARN | FAIL | ERROR),
-        'method' utilizado e 'detail' descritivo quando aplicavel.
+        'method' utilizado e 'detail' descritivo quando aplicavel. Quando a
+        camada 3 e alcancada, inclui tambem 'sha256', 'previous_sha256',
+        'stagnant' e 'hash_source'.
     """
     result: dict = {'integrity_check': 'unknown', 'method': None, 'detail': None}
 
     try:
-        # Camada 1 â€” tamanho minimo
+        # Camada 1 - tamanho minimo
         size_failure = _check_size(filepath, min_size_mb)
         if size_failure:
             return size_failure
 
-        # Camada 2 â€” estrutura interna por tipo
+        # Camada 2 - estrutura interna por tipo
         structure_result = _check_structure(filepath)
         if structure_result.get('integrity_check') == 'FAIL':
             return structure_result
         result['method'] = structure_result.get('method')
 
-        # Camada 3 â€” hash SHA256
-        hash_result = _check_hash(filepath)
+        # Camada 3 - hash SHA256 contra o backup anterior observado
+        hash_result = _check_hash(filepath, previous, signature or _file_signature(filepath))
         result.update(hash_result)
 
     except (zipfile.BadZipFile, tarfile.TarError) as e:
@@ -313,7 +456,13 @@ def find_log_file(backup_path: str) -> dict:
 
 # â”€â”€ verificacao principal de backup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-def check_backup_files(paths: list[str], extensions: list[str], min_size_mb: int, sla_hours: int) -> dict:
+def check_backup_files(
+    paths: list[str],
+    extensions: list[str],
+    min_size_mb: int,
+    sla_hours: int,
+    state_path: str | None = None,
+) -> dict:
     """
     Localiza o backup mais recente nos diretorios fornecidos e o avalia.
 
@@ -330,14 +479,21 @@ def check_backup_files(paths: list[str], extensions: list[str], min_size_mb: int
         NO_BACKUP_FOUND  â†’ nenhum arquivo encontrado nos diretorios
         SLA_BREACH       â†’ backup existe mas esta fora do prazo configurado
         INTEGRITY_FAIL   â†’ backup dentro do prazo mas com arquivo corrompido
-        WARN             â†’ backup OK mas hash identico ao anterior
+        WARN             â†’ backup estagnado (novo, mas SHA256 identico ao anterior)
+                          ou integridade nao verificavel (ex: sem permissao de leitura)
         OK               â†’ todas as verificacoes passaram
+
+    Estagnacao:
+        Comparada com o ultimo backup observado, guardado em 'state_path'
+        (fora do diretorio de backup). Sem state_path nao ha referencia
+        anterior e a estagnacao nao e detectada. Ver _check_hash.
 
     Args:
         paths:       Lista de diretorios raiz onde os backups estao armazenados.
         extensions:  Lista de extensoes validas (ex: ['.tar.gz', '.zip']).
         min_size_mb: Tamanho minimo aceitavel em MB.
         sla_hours:   Prazo maximo entre backups em horas.
+        state_path:  Arquivo de estado do ultimo backup observado (opcional).
 
     Returns:
         Dicionario com status, metadados, resultado de integridade e log.
@@ -362,19 +518,38 @@ def check_backup_files(paths: list[str], extensions: list[str], min_size_mb: int
     if not most_recent_file:
         return {'status': 'NO_BACKUP_FOUND', 'path': None}
 
+    # Assinatura tomada ANTES do hash: se o arquivo mudar durante a leitura,
+    # o proximo ciclo enxerga assinatura diferente e recalcula.
+    signature = _file_signature(most_recent_file)
     age_hours = round((time.time() - most_recent_mtime) / 3600, 2)
-    size_mb   = round(os.path.getsize(most_recent_file) / 1_048_576, 2)
+    size_mb   = round(signature['size'] / 1_048_576, 2)
     sla_ok    = age_hours <= sla_hours
 
-    integrity = verify_file_integrity(most_recent_file, min_size_mb)
+    previous  = load_state(state_path)
+    integrity = verify_file_integrity(most_recent_file, min_size_mb, previous, signature)
     log_info  = find_log_file(most_recent_file)
 
-    # Determina o status final com base na prioridade das verificacoes
+    # Persiste a nova observacao (so quando o hash foi calculado agora; backups
+    # que falharam em tamanho/estrutura ou deram ERROR nao viram referencia)
+    if state_path and integrity.get('hash_source') == 'computed':
+        entry = {
+            **signature,
+            'sha256':          integrity['sha256'],
+            'previous_sha256': integrity['previous_sha256'],
+            'stagnant':        integrity['stagnant'],
+        }
+        state_error = save_state(state_path, entry)
+        if state_error:
+            integrity['state_warning'] = f'Nao foi possivel gravar o estado do backup: {state_error}'
+            logger.warning('Falha ao gravar estado do backup | erro=%s', state_error)
+
+    # Determina o status final com base na prioridade das verificacoes.
+    # ERROR (ex: leitura negada) nao pode virar OK - o backup nao foi verificado.
     if not sla_ok:
         final_status = 'SLA_BREACH'
     elif integrity['integrity_check'] == 'FAIL':
         final_status = 'INTEGRITY_FAIL'
-    elif integrity['integrity_check'] == 'WARN':
+    elif integrity['integrity_check'] in ('WARN', 'ERROR'):
         final_status = 'WARN'
     else:
         final_status = 'OK'
@@ -427,6 +602,7 @@ def collect(config: AgentConfig) -> dict:
             extensions  = backup_cfg.extensions,
             min_size_mb = backup_cfg.min_size_mb,
             sla_hours   = backup_cfg.sla_hours,
+            state_path  = state_file_path(config.retry.queue_path, STATE_FILENAME),
         )
     }
 
