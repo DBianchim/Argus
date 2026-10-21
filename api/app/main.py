@@ -51,18 +51,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def check_offline(session, now: datetime.datetime) -> None:
+    """Reavalia cada servidor já visto, usando o último payload de cada pilar.
+
+    Passar as métricas reais é essencial: com {} um servidor ONLINE seria
+    reavaliado como UNKNOWN a cada ciclo, e o próximo ingest o devolveria a
+    CRIT/WARN — gerando uma notificação repetida a cada payload.
+    """
+    for server in await crud.servers_for_offline_check(session):
+        latest = await crud.latest_per_pilar(session, server.id)
+        pilar_metrics = {m.pilar: m.metrics for m in latest}
+        await notifications.evaluate_and_notify(
+            session, server, pilar_metrics, settings.offline_after_seconds, now
+        )
+
+
 async def _offline_watch() -> None:
     """Loop: marca servidores sem contato como OFFLINE e gera a notificação."""
     while True:
         await asyncio.sleep(settings.offline_check_seconds)
         try:
             async with SessionLocal() as session:
-                now = datetime.datetime.now(datetime.timezone.utc)
-                for server in await crud.servers_for_offline_check(session):
-                    # Sem métricas: evaluate_server retorna OFFLINE com o alerta
-                    await notifications.evaluate_and_notify(
-                        session, server, {}, settings.offline_after_seconds, now
-                    )
+                await check_offline(session, datetime.datetime.now(datetime.timezone.utc))
         except Exception as exc:  # nunca derruba o loop
             logger.warning("Falha no loop de offline | erro=%s", type(exc).__name__)
 
