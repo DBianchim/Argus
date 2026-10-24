@@ -283,6 +283,11 @@ def linux_disk() -> list[dict]:
     return disks
 
 
+# O OpenSSH tem nomes de unit diferentes por distro (Debian/Ubuntu: ssh; RHEL/Fedora:
+# sshd). A central guarda um nome por servidor; o agente resolve o que existe aqui.
+_SERVICE_ALIASES = {'sshd': 'ssh', 'ssh': 'sshd'}
+
+
 def linux_services(service_list: list[str]) -> list[dict]:
     """
     Verifica o estado e a configuracao de inicializacao dos servicos criticos.
@@ -295,18 +300,30 @@ def linux_services(service_list: list[str]) -> list[dict]:
         is-active:  active | inactive | failed | activating | not-found
         is-enabled: enabled | disabled | static | masked | not-found
 
+    Nomes alternativos (ver _SERVICE_ALIASES): se a unit configurada nao esta ativa
+    e a alternativa esta, o estado e o da alternativa e o payload traz a chave
+    aditiva 'unit' com a unit realmente consultada. 'name' segue o configurado.
+
     Args:
         service_list: Lista de nomes de servicos Linux a verificar.
     """
     services = []
     for service_name in service_list:
-        status  = run_command(['systemctl', 'is-active',  service_name]) or 'not-found'
-        enabled = run_command(['systemctl', 'is-enabled', service_name]) or 'unknown'
-        services.append({
+        unit    = service_name
+        status  = run_command(['systemctl', 'is-active',  unit]) or 'not-found'
+        alias   = _SERVICE_ALIASES.get(service_name)
+        if status != 'active' and alias:
+            if run_command(['systemctl', 'is-active', alias]) == 'active':
+                unit, status = alias, 'active'
+        enabled = run_command(['systemctl', 'is-enabled', unit]) or 'unknown'
+        entry = {
             'name':    service_name,
             'status':  status,
             'enabled': enabled,
-        })
+        }
+        if unit != service_name:
+            entry['unit'] = unit
+        services.append(entry)
     return services
 
 

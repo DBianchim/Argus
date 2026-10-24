@@ -4,6 +4,7 @@ test_analysis.py — Regras do motor de análise (funções puras, sem banco).
 
 import datetime
 
+from app.config_defaults import default_config
 from app.analysis import (
     Status,
     evaluate_backup,
@@ -163,6 +164,34 @@ def test_findings_all_ok():
         {"item": "a", "status": "ok"}, {"item": "b", "status": "info"},
     ]})
     assert status == Status.OK and alerts == []
+
+
+def test_failed_logins_unavailable_is_warn_and_can_be_silenced():
+    # Achado do agente Linux sem auth.log/journal legivel: vira Aviso (nao some)
+    finding = {"item": "failed_logins_unavailable", "status": "warning",
+               "value": None, "detail": "Deteccao de falhas de logon indisponivel"}
+    status, alerts = evaluate_findings("acesso", {"findings": [finding]})
+    assert status == Status.WARN
+    assert alerts[0].item == "failed_logins_unavailable"
+    assert "indisponivel" in alerts[0].title
+
+    overrides = {"acesso": {"finding_overrides": {"failed_logins_unavailable": "ignore"}}}
+    status, alerts = evaluate_findings("acesso", {"findings": [finding]}, overrides)
+    assert status == Status.OK and alerts == []
+
+
+def test_service_unit_key_is_ignored_by_analysis():
+    # Chave aditiva 'unit' (ssh x sshd) nao muda a avaliacao do servico
+    status, alerts = evaluate_operacional({"services": [
+        {"name": "sshd", "status": "active", "enabled": "enabled", "unit": "ssh"},
+    ]})
+    assert status == Status.OK and alerts == []
+
+
+def test_linux_default_services_do_not_include_cron():
+    # cron nao vem em imagens minimas (Ubuntu 26.04): inactive = falso positivo permanente
+    services = default_config("linux")["operacional"]["critical_services"]
+    assert services == ["sshd"]
 
 
 # ── servidor ──────────────────────────────────────────────────────────────────

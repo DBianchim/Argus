@@ -195,6 +195,24 @@ class TestLinuxLogs(unittest.TestCase):
         warnings = [r for r in results if r["status"] == "warning"]
         self.assertGreater(len(warnings), 0)
 
+    def test_log_file_missing_com_journald_ativo_nao_gera_warning(self):
+        # Sistema so com journald: auth.log/syslog/secure/messages ausentes sao normais
+        with patch("pathlib.Path.exists", return_value=False):
+            with patch("agent_logs.journald_active", return_value=True):
+                results = _linux_log_files()
+        by_item = {r["item"]: r for r in results}
+        for name in ("auth.log", "syslog", "secure", "messages"):
+            self.assertEqual(by_item[f"log_file_{name}"]["status"], "info", name)
+            self.assertIn("journald", by_item[f"log_file_{name}"]["detail"])
+        # audit.log nao e substituido pelo journald: continua avisando
+        self.assertEqual(by_item["log_file_audit.log"]["status"], "warning")
+
+    def test_log_file_missing_sem_journald_continua_warning(self):
+        with patch("pathlib.Path.exists", return_value=False):
+            with patch("agent_logs.journald_active", return_value=False):
+                results = _linux_log_files()
+        self.assertTrue(all(r["status"] == "warning" for r in results))
+
     def test_log_file_recent_ok(self):
         mock_stat = MagicMock()
         mock_stat.st_mtime = time.time() - 1800   # 30 min atrás
@@ -276,7 +294,28 @@ class TestLinuxLogs(unittest.TestCase):
 
     def test_last_log_entry_no_file(self):
         with patch("pathlib.Path.exists", return_value=False):
-            result = _linux_last_log_entry()
+            with patch("agent_logs.journald_active", return_value=False):
+                result = _linux_last_log_entry()
+        self.assertEqual(result["status"], "warning")
+
+    def test_last_log_entry_journald_envia_so_o_timestamp(self):
+        fake = "2026-10-24T14:23:30+0000 srv sshd[1]: Accepted publickey for david"
+        with patch("pathlib.Path.exists", return_value=False):
+            with patch("agent_logs.journald_active", return_value=True):
+                with patch("agent_logs.journal_readable", return_value=True):
+                    with patch("agent_logs.run_cmd", return_value=(fake, "", 0)) as mock_run:
+                        result = _linux_last_log_entry()
+        args = mock_run.call_args[0][0]
+        self.assertIn("ssh", args)      # so as units do SSH, nao o journal inteiro (inclui o agente)
+        self.assertEqual(result["status"], "info")
+        self.assertEqual(result["value"], "2026-10-24T14:23:30+0000")
+        self.assertNotIn("david", str(result))
+
+    def test_last_log_entry_journald_ilegivel_warning(self):
+        with patch("pathlib.Path.exists", return_value=False):
+            with patch("agent_logs.journald_active", return_value=True):
+                with patch("agent_logs.journal_readable", return_value=False):
+                    result = _linux_last_log_entry()
         self.assertEqual(result["status"], "warning")
 
 

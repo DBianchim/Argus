@@ -285,6 +285,11 @@ if (Get-Service $AppName -ErrorAction SilentlyContinue) {
 if (Get-ScheduledTask -TaskName $AppName -ErrorAction SilentlyContinue) {
     Unregister-ScheduledTask -TaskName $AppName -Confirm:$false -ErrorAction SilentlyContinue
 }
+# Remover/parar a tarefa NAO encerra o python.exe do runner: sem isto a reinstalacao
+# deixaria o agente antigo rodando (com o codigo antigo, segurando a trava de instancia unica).
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -match 'runner\.py' } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
 # ── Tarefa Agendada (SYSTEM, inicia no boot, reinicia em falha) ───────────────────
 Info "Registrando a Tarefa Agendada (conta SYSTEM, inicio no boot)..."
@@ -339,6 +344,6 @@ Write-Host ""
 Write-Host "   Execucao      : Tarefa Agendada '$AppName' (conta SYSTEM, inicia no boot)"
 Write-Host "   Status        : Get-ScheduledTask -TaskName $AppName"
 Write-Host "   Logs          : Get-Content '$LogDir\agent-monitor.log' -Tail 30"
-Write-Host "   Reiniciar     : Stop-ScheduledTask $AppName; Start-ScheduledTask $AppName"
+Write-Host "   Reiniciar     : ver install\INSTALL.md (Stop-ScheduledTask nao encerra o python.exe)"
 Write-Host "   Desinstalar   : Unregister-ScheduledTask -TaskName $AppName -Confirm:`$false"
 Write-Host ""

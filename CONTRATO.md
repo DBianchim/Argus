@@ -114,3 +114,38 @@ Semântica:
   "Integridade do backup não verificada" com o `detail`. A central também aplica essa regra
   a payloads de agentes anteriores que enviaram `ERROR` com `status: "OK"`.
 - `status` desconhecido para a central é avaliado como `unknown` (sem alerta), e não mais `ok`.
+
+## 7. Linux sem `auth.log`, serviços e instância única (1.2.0)
+
+Mudanças **aditivas**, enviadas a partir da `AGENT_VERSION` 1.2.0. Nenhuma chave existente
+muda de nome, tipo ou significado; a central continua lendo com `.get()` e não rejeita
+payload pelo conteúdo de `metrics`.
+
+**Pilar `acesso` (Linux):** `failed_logins_count`, `top_failed_ips` e
+`successful_ssh_logins` mantêm o formato. Sem `/var/log/auth.log` nem `/var/log/secure`
+legíveis, o agente lê o **journald** (units `ssh`/`sshd`, últimas 24 h): a contagem é de
+tentativas ("Failed password" + "Invalid user" sem "Failed password" na mesma origem, para não
+contar duas vezes a mesma tentativa) e só contagens e IPs agregados são enviados —
+nunca linhas brutas. Novo item:
+
+| Item | Status | Significado |
+|------|--------|-------------|
+| `failed_logins_unavailable` | `warning` | Nenhuma fonte de falhas de logon legível (nem arquivos nem journald); a detecção está **indisponível**. `value` é `null`. A central trata como qualquer `warning` (vira Aviso; silenciável por `finding_overrides`) |
+
+**Pilar `logs` (Linux):** com o journald ativo, `auth.log`, `syslog`, `secure` e `messages`
+ausentes deixam de ser `warning` e passam a `info` ("substituído pelo journald");
+`audit.log` ausente continua `warning`. Em `last_log_entry`, sem `auth.log`/`secure`, `value`
+passa a ser o timestamp ISO da última entrada das units `ssh`/`sshd` no journal (string, como antes).
+
+**Pilar `operacional` (Linux):** em cada item de `metrics.services`, chave opcional
+`unit` — a unit realmente consultada quando difere do `name` configurado (`sshd` ⇄ `ssh`,
+conforme a distro). `name` segue o configurado pela central.
+
+**Central:** o padrão de `critical_services` de servidores Linux novos passa a ser
+`["sshd"]` (antes `["sshd", "cron"]`; `cron` não existe em imagens mínimas). Servidores já
+cadastrados mantêm a lista salva e podem editá-la na configuração do servidor.
+
+**Estado e instância única:** `backup_state.json`, `config_cache.json` e o novo
+`agent.lock` ficam na pasta pai de `retry.queue_path`. Se essa pasta não aceita escrita, o
+agente registra aviso no início e o pilar backup envia `integrity.state_warning` (já existia).
+O `runner.py` encerra com código 3 se outro agente do mesmo host detém `agent.lock`.

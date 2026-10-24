@@ -102,7 +102,10 @@ Três conceitos importantes:
     Administradores), lido pelo lançador da Tarefa Agendada.
 - **Conta de execução:**
   - Linux: usuário `argus-agent` (nologin), com hardening do systemd
-    (`NoNewPrivileges`, `ProtectSystem=strict`).
+    (`NoNewPrivileges`, `ProtectSystem=strict`). Escrita só em `/var/lib/argus/agent-monitor`
+    (estado e fila, dono `argus-agent`) e `/var/log/argus/agent-monitor`; leitura do
+    journal via `SupplementaryGroups=systemd-journal` (do journal saem só contagens e IPs
+    agregados e timestamps — nunca linhas brutas).
   - Windows: Tarefa Agendada como **SYSTEM** — privilegiada, mas necessária para ler o
     log de Segurança; o token e os dados ficam restritos a SYSTEM/Administradores.
 - **HTTPS sempre** para as métricas (token e dados criptografados em trânsito).
@@ -122,8 +125,21 @@ systemctl restart argus-agent       # reiniciar
 ```powershell
 Get-ScheduledTask -TaskName argus-agent | Get-ScheduledTaskInfo   # estado/ultima exec.
 Get-Content 'C:\ProgramData\Argus\agent-monitor\logs\agent-monitor.log' -Tail 30
-Stop-ScheduledTask -TaskName argus-agent; Start-ScheduledTask -TaskName argus-agent
+Stop-ScheduledTask -TaskName argus-agent
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+  Where-Object { $_.CommandLine -match 'runner\.py' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }   # Stop-ScheduledTask NAO encerra o python.exe
+Start-ScheduledTask -TaskName argus-agent
 ```
+
+> **Windows — reiniciar com cuidado:** `Stop-ScheduledTask` só para a tarefa; o
+> `python.exe runner.py` continua rodando. Iniciar a tarefa de novo sem encerrar esse
+> processo criava um **segundo agente** consumindo a mesma fila (dois `Flush concluido`
+> simultâneos e `Falha ao remover arquivo da fila`). O agente agora tem **trava de
+> instância única** (`agent.lock`, na pasta de estado ao lado da fila): um segundo
+> agente encerra com o código 3 e a mensagem "Já existe outro agente em execução". Mesmo
+> assim, encerre o processo antigo como acima — senão o novo `Start` falha e o agente
+> antigo segue rodando com o código antigo.
 
 ### Rotacionar o token (sem reinstalar)
 
@@ -132,8 +148,51 @@ Stop-ScheduledTask -TaskName argus-agent; Start-ScheduledTask -TaskName argus-ag
 **Windows:**
 ```powershell
 Set-Content 'C:\ProgramData\Argus\agent-monitor\agent.token' -Value 'novo-token' -NoNewline
-Stop-ScheduledTask -TaskName argus-agent; Start-ScheduledTask -TaskName argus-agent
+Stop-ScheduledTask -TaskName argus-agent
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+  Where-Object { $_.CommandLine -match 'runner\.py' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }   # Stop-ScheduledTask NAO encerra o python.exe
+Start-ScheduledTask -TaskName argus-agent
 ```
+
+### Atualizar um agente já instalado
+
+**Linux — recomendado: reexecutar o instalador** (o mesmo comando do Passo 2). Ele
+preserva o usuário e os dados, regrava `config.toml` (com backup `.bak.<data>`) e a unit
+systemd, e corrige a permissão da pasta de estado (ver abaixo).
+
+> **Por que atualizar agentes Linux instalados antes da versão 1.2.0:** nessas instalações
+> a unit tinha `ProtectSystem=strict` com `ReadWritePaths` só para a pasta `queue`, e a
+> pasta pai (`/var/lib/argus/agent-monitor`) ficava `root:root`. O agente não conseguia
+> gravar `backup_state.json` nem `config_cache.json` (erro `[Errno 30] Read-only file
+> system`, visível como `integrity.state_warning` no pilar backup e no log do agente), e a
+> **estagnação do backup nunca era detectada**. A unit também não dava acesso ao journal,
+> então sistemas sem `/var/log/auth.log` (só journald) ficavam sem a detecção de falhas
+> de logon — o agente agora avisa com o achado `failed_logins_unavailable`.
+
+**Linux — sem reinstalar (drop-in do systemd):**
+```bash
+sudo chown argus-agent:argus-agent /var/lib/argus/agent-monitor
+sudo chmod 750 /var/lib/argus/agent-monitor
+sudo mkdir -p /etc/systemd/system/argus-agent.service.d
+sudo tee /etc/systemd/system/argus-agent.service.d/estado-journal.conf >/dev/null <<'EOF'
+[Service]
+ReadWritePaths=/var/lib/argus/agent-monitor
+SupplementaryGroups=systemd-journal
+EOF
+sudo systemctl daemon-reload && sudo systemctl restart argus-agent
+```
+Isso só ajusta a permissão/unit: o código novo do agente (journald, trava de instância
+única) só chega reexecutando o instalador. Para conferir depois:
+```bash
+journalctl -u argus-agent -n 50 --no-pager | grep -i "estado"   # sem "Pasta de estado nao gravavel"
+ls -l /var/lib/argus/agent-monitor                              # backup_state.json e config_cache.json, dono argus-agent
+systemctl show argus-agent -p SupplementaryGroups -p ReadWritePaths
+```
+
+**Windows:** reexecute o instalador (o `install.ps1` agora encerra o `python.exe` antigo
+antes de registrar a tarefa) ou, para só trocar o código, encerre o agente como descrito
+em "Operação", copie os arquivos novos e inicie a tarefa.
 
 ### Desinstalar
 

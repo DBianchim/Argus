@@ -21,6 +21,7 @@ import logging
 import os
 import platform
 import subprocess
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 # Versao unica do pacote de agentes, enviada em cada payload (agent_version).
 # Incremente a cada release que altere a coleta ou o contrato (ver CONTRATO.md
 # na raiz do projeto). E a fonte unica: runner.py e os 4 agentes leem daqui.
-AGENT_VERSION = '1.1.0'
+AGENT_VERSION = '1.2.0'
 
 
 # ── arquivos de estado ────────────────────────────────────────────────────────
@@ -51,6 +52,29 @@ def state_file_path(queue_path: str, filename: str) -> str:
     return os.path.join(base, filename)
 
 
+def state_dir_error(queue_path: str) -> str | None:
+    """
+    Verifica se a pasta de estado do agente aceita gravacao.
+
+    Cria um arquivo temporario na pasta de state_file_path() e o remove. Serve
+    para avisar no inicio (runner) quando o estado nao sera persistido — por
+    exemplo, em instalacao Linux antiga em que a pasta e root:root ou fica fora
+    do ReadWritePaths da unit systemd.
+
+    Returns:
+        None se a pasta e gravavel; senao, texto com o caminho e o erro.
+    """
+    base = os.path.dirname(state_file_path(queue_path, 'x'))
+    try:
+        os.makedirs(base, exist_ok=True)
+        fd, probe = tempfile.mkstemp(dir=base, prefix='.probe-')
+        os.close(fd)
+        os.remove(probe)
+    except OSError as exc:
+        return f'{base}: {exc}'
+    return None
+
+
 # ── tempo ─────────────────────────────────────────────────────────────────────
 
 def now_iso() -> str:
@@ -69,6 +93,35 @@ def now_iso() -> str:
 def detect_os() -> str:
     """Retorna 'windows' ou 'linux' com base no sistema em execucao."""
     return 'windows' if platform.system().lower() == 'windows' else 'linux'
+
+
+# ── journald ──────────────────────────────────────────────────────────────────
+
+# Grupos que dao leitura ao journal do sistema.
+_JOURNAL_GROUPS = {'systemd-journal', 'adm', 'wheel'}
+
+
+def journald_active() -> bool:
+    """True se o journald esta rodando (socket em /run/systemd/journal). Sem subprocesso."""
+    return os.path.exists('/run/systemd/journal/socket')
+
+
+def journal_readable() -> bool:
+    """True se o usuario do agente le o journal do sistema (root ou grupo systemd-journal/adm)."""
+    if getattr(os, 'geteuid', lambda: -1)() == 0:
+        return True
+    try:
+        import grp
+        groups = os.getgroups()
+    except (ImportError, AttributeError):
+        return False
+    for gid in groups:
+        try:
+            if grp.getgrgid(gid).gr_name in _JOURNAL_GROUPS:
+                return True
+        except KeyError:        # gid sem nome (NSS indisponivel): ignora so esse
+            continue
+    return False
 
 
 # ── execucao de comandos ──────────────────────────────────────────────────────
