@@ -20,6 +20,7 @@ import datetime
 import json
 import logging
 import platform
+import re
 import time
 from pathlib import Path
 
@@ -27,6 +28,7 @@ from core.config_loader import AgentConfig
 # Utilitarios compartilhados (DRY) — re-exportados abaixo para compatibilidade
 # com os imports dos testes (from agent_logs import run_cmd, now_iso, ...).
 from core.sysutils import AGENT_VERSION, now_iso, detect_os, run_cmd, run_powershell
+from core.sysutils import journal_readable, journald_active
 from core.sysutils import finding as _finding
 
 logger = logging.getLogger(__name__)
@@ -73,6 +75,13 @@ def _linux_journald_integrity() -> dict:
     )
 
 
+# Arquivos que o journald substitui: em sistemas so com journald (ex.: Ubuntu
+# minimo) eles nao existem e isso e normal. audit.log nao e substituido.
+_JOURNALD_REPLACES = {
+    "/var/log/auth.log", "/var/log/syslog", "/var/log/secure", "/var/log/messages",
+}
+
+
 def _linux_log_files() -> list:
     critical_files = [
         "/var/log/auth.log",
@@ -81,10 +90,17 @@ def _linux_log_files() -> list:
         "/var/log/messages",
         "/var/log/audit/audit.log",
     ]
+    journald = journald_active()
     results = []
     for lf in critical_files:
         p = Path(lf)
         if not p.exists():
+            if journald and lf in _JOURNALD_REPLACES:
+                results.append(finding(
+                    f"log_file_{p.name}", None, "info",
+                    f"{lf} ausente; substituido pelo journald (ativo)",
+                ))
+                continue
             results.append(finding(
                 f"log_file_{p.name}", None, "warning",
                 f"Arquivo de log esperado não encontrado: {lf}",
@@ -166,8 +182,17 @@ def _linux_last_log_entry() -> dict:
             "last_log_entry", stdout.strip(), "info",
             f"Último registro em {log_file} — usar para detecção de gaps",
         )
+    # Sem auth.log/secure: timestamp da ultima entrada do journald (so a data, nao a mensagem)
+    if journald_active() and journal_readable():
+        stdout, _, rc = run_cmd(["journalctl", "-n", "1", "--no-pager", "-o", "short-iso"])
+        match = re.match(r"\d{4}-\d{2}-\d{2}T\S+", stdout.strip())
+        if rc == 0 and match:
+            return finding(
+                "last_log_entry", match.group(0), "info",
+                f"Ultimo registro do journald em {match.group(0)} — usar para detecção de gaps",
+            )
     return finding("last_log_entry", None, "warning",
-                   "Nenhum arquivo auth.log/secure encontrado")
+                   "Nenhum arquivo auth.log/secure encontrado e o journald nao esta legivel")
 
 
 # ---------------------------------------------------------------------------
