@@ -26,7 +26,10 @@ APP_NAME="argus-agent"
 APP_USER="argus-agent"
 INSTALL_DIR="/opt/argus/agent-monitor"
 CONFIG_DIR="/etc/argus/agent-monitor"
-QUEUE_DIR="/var/lib/argus/agent-monitor/queue"
+# STATE_DIR guarda o estado do agente (backup_state.json, config_cache.json) e a
+# fila local: o agente grava ao lado de retry.queue_path (ver core/sysutils.py).
+STATE_DIR="/var/lib/argus/agent-monitor"
+QUEUE_DIR="${STATE_DIR}/queue"
 LOG_DIR="/var/log/argus/agent-monitor"
 SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
 ENV_FILE="${CONFIG_DIR}/agent.env"
@@ -161,9 +164,13 @@ install_dependencies() {
 create_directories() {
     log_section "Diretorios de dados"
     mkdir -p "$CONFIG_DIR"; chown root:"$APP_USER" "$CONFIG_DIR"; chmod 750 "$CONFIG_DIR"
+    # A pasta de estado (pai da fila) precisa ser do usuario do servico; com
+    # ProtectSystem=strict ela tambem entra no ReadWritePaths da unit. Reinstalar
+    # corrige instalacoes antigas, em que ela ficava root:root (estado nao gravado).
+    mkdir -p "$STATE_DIR"; chown "$APP_USER":"$APP_USER" "$STATE_DIR"; chmod 750 "$STATE_DIR"
     mkdir -p "$QUEUE_DIR"; chown "$APP_USER":"$APP_USER" "$QUEUE_DIR"; chmod 750 "$QUEUE_DIR"
     mkdir -p "$LOG_DIR";   chown "$APP_USER":"$APP_USER" "$LOG_DIR";   chmod 750 "$LOG_DIR"
-    log_info "Config: $CONFIG_DIR | Fila: $QUEUE_DIR | Logs: $LOG_DIR"
+    log_info "Config: $CONFIG_DIR | Estado: $STATE_DIR | Fila: $QUEUE_DIR | Logs: $LOG_DIR"
 }
 
 # ── CA (para o agente confiar no HTTPS da central) ──────────────────────────────
@@ -266,7 +273,9 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=${QUEUE_DIR} ${LOG_DIR}
+ReadWritePaths=${STATE_DIR} ${LOG_DIR}
+# Leitura do journal (falhas de logon e logs em sistemas sem auth.log/syslog)
+SupplementaryGroups=systemd-journal
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=${APP_NAME}
