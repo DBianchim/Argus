@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # Versao unica do pacote de agentes, enviada em cada payload (agent_version).
 # Incremente a cada release que altere a coleta ou o contrato (ver CONTRATO.md
 # na raiz do projeto). E a fonte unica: runner.py e os 4 agentes leem daqui.
-AGENT_VERSION = '1.1.0'
+AGENT_VERSION = '1.2.0'
 
 
 # ── arquivos de estado ────────────────────────────────────────────────────────
