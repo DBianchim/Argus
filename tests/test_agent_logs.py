@@ -303,8 +303,10 @@ class TestLinuxLogs(unittest.TestCase):
         with patch("pathlib.Path.exists", return_value=False):
             with patch("agent_logs.journald_active", return_value=True):
                 with patch("agent_logs.journal_readable", return_value=True):
-                    with patch("agent_logs.run_cmd", return_value=(fake, "", 0)):
+                    with patch("agent_logs.run_cmd", return_value=(fake, "", 0)) as mock_run:
                         result = _linux_last_log_entry()
+        args = mock_run.call_args[0][0]
+        self.assertIn("ssh", args)      # so as units do SSH, nao o journal inteiro (inclui o agente)
         self.assertEqual(result["status"], "info")
         self.assertEqual(result["value"], "2026-10-24T14:23:30+0000")
         self.assertNotIn("david", str(result))

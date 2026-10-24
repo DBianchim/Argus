@@ -104,8 +104,8 @@ Três conceitos importantes:
   - Linux: usuário `argus-agent` (nologin), com hardening do systemd
     (`NoNewPrivileges`, `ProtectSystem=strict`). Escrita só em `/var/lib/argus/agent-monitor`
     (estado e fila, dono `argus-agent`) e `/var/log/argus/agent-monitor`; leitura do
-    journal via `SupplementaryGroups=systemd-journal` (somente contagens e IPs agregados
-    saem do host — nunca linhas brutas de log).
+    journal via `SupplementaryGroups=systemd-journal` (do journal saem só contagens e IPs
+    agregados e timestamps — nunca linhas brutas).
   - Windows: Tarefa Agendada como **SYSTEM** — privilegiada, mas necessária para ler o
     log de Segurança; o token e os dados ficam restritos a SYSTEM/Administradores.
 - **HTTPS sempre** para as métricas (token e dados criptografados em trânsito).

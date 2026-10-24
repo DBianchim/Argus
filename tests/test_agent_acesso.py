@@ -328,14 +328,33 @@ class TestJournaldFallback(unittest.TestCase):
         with patch("agent_acesso.run_cmd", return_value=(JOURNAL_SSH, "", 0)) as mock:
             results = _linux_failed_logins()
         count = next(r for r in results if r["item"] == "failed_logins_count")
-        # 3 "Failed password" + 2 linhas "Invalid user"
-        self.assertEqual(count["value"], 5)
+        # 3 "Failed password" + 1 "Invalid user" sem "Failed password" (a de admin e a mesma
+        # tentativa da linha "Failed password for invalid user admin ... port 40001")
+        self.assertEqual(count["value"], 4)
         self.assertEqual(count["status"], "ok")
         self.assertIn("journald", count["detail"])
         args = mock.call_args[0][0]
         self.assertEqual(args[0], "journalctl")
         self.assertIn("ssh", args)
         self.assertIn("sshd", args)
+
+    def test_mesma_tentativa_com_duas_linhas_conta_uma_vez(self):
+        lines = "\n".join([
+            "Invalid user x from 203.0.113.9 port 40001",
+            "Failed password for invalid user x from 203.0.113.9 port 40001 ssh2",
+        ])
+        with patch("agent_acesso.run_cmd", return_value=(lines, "", 0)):
+            results = _linux_failed_logins()
+        count = next(r for r in results if r["item"] == "failed_logins_count")
+        self.assertEqual(count["value"], 1)
+        top = next(r for r in results if r["item"] == "top_failed_ips")
+        self.assertEqual(top["value"], [{"ip": "203.0.113.9", "count": 1}])
+
+    def test_falha_do_journalctl_aparece_no_detalhe(self):
+        with patch("agent_acesso.run_cmd", return_value=("", "Timeout ao executar: journalctl", 1)):
+            results = _linux_failed_logins()
+        self.assertEqual(results[0]["item"], "failed_logins_unavailable")
+        self.assertIn("Timeout", results[0]["detail"])
 
     def test_warning_acima_do_limite(self):
         lines = "\n".join(f"Failed password for x from 203.0.113.{i} port 22 ssh2"
@@ -352,7 +371,7 @@ class TestJournaldFallback(unittest.TestCase):
         for fragment in ("ssh2", "port 4000", "publickey", "admin", "ubuntu"):
             self.assertNotIn(fragment, payload)
         top = next(r for r in results if r["item"] == "top_failed_ips")
-        self.assertEqual(top["value"][0], {"ip": "203.0.113.9", "count": 3})
+        self.assertEqual(top["value"][0], {"ip": "203.0.113.9", "count": 2})
         self.assertEqual(top["value"][1], {"ip": "198.51.100.7", "count": 2})
 
     def test_journal_vazio_e_zero_falhas_ok(self):

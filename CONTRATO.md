@@ -124,7 +124,8 @@ payload pelo conteúdo de `metrics`.
 **Pilar `acesso` (Linux):** `failed_logins_count`, `top_failed_ips` e
 `successful_ssh_logins` mantêm o formato. Sem `/var/log/auth.log` nem `/var/log/secure`
 legíveis, o agente lê o **journald** (units `ssh`/`sshd`, últimas 24 h): a contagem é de
-linhas "Failed password" + "Invalid user" e só contagens e IPs agregados são enviados —
+tentativas ("Failed password" + "Invalid user" sem "Failed password" na mesma origem, para não
+contar duas vezes a mesma tentativa) e só contagens e IPs agregados são enviados —
 nunca linhas brutas. Novo item:
 
 | Item | Status | Significado |
@@ -134,7 +135,7 @@ nunca linhas brutas. Novo item:
 **Pilar `logs` (Linux):** com o journald ativo, `auth.log`, `syslog`, `secure` e `messages`
 ausentes deixam de ser `warning` e passam a `info` ("substituído pelo journald");
 `audit.log` ausente continua `warning`. Em `last_log_entry`, sem `auth.log`/`secure`, `value`
-passa a ser o timestamp ISO da última entrada do journal (string, como antes).
+passa a ser o timestamp ISO da última entrada das units `ssh`/`sshd` no journal (string, como antes).
 
 **Pilar `operacional` (Linux):** em cada item de `metrics.services`, chave opcional
 `unit` — a unit realmente consultada quando difere do `name` configurado (`sshd` ⇄ `ssh`,

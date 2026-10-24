@@ -78,11 +78,19 @@ def _journal_ssh_messages():
         args = ["journalctl", "--no-pager", "-o", "cat", "--since", _JOURNAL_WINDOW]
         for unit in _JOURNAL_SSH_UNITS:
             args += ["-u", unit]
-        stdout, _, rc = run_cmd(args, timeout=30)
+        stdout, stderr, rc = run_cmd(args, timeout=60)
         if rc == 0:
             messages = stdout.splitlines()
+        else:
+            _journal_cache["ssh_error"] = stderr.strip()[:200]   # ex.: timeout sob ataque
     _journal_cache["ssh"] = messages
     return messages
+
+
+def _origin(line: str):
+    """Par (ip, porta) de origem de uma linha do sshd; identifica a tentativa."""
+    match = re.search(r"from (\S+) port (\d+)", line)
+    return match.groups() if match else line
 
 
 def _top_ips(lines) -> list:
@@ -100,7 +108,12 @@ def _top_ips(lines) -> list:
 def _journal_failed_logins(messages: list) -> list:
     # Privacidade: so contagem e IPs agregados; as linhas do journal nao saem do host.
     # "Invalid user" cobre hosts sem PasswordAuthentication, onde nao ha "Failed password".
-    failed = [m for m in messages if "Failed password" in m or m.startswith("Invalid user")]
+    # Com senha ativa a mesma tentativa gera as duas linhas (mesmo "from <ip> port <porta>"):
+    # conta-se uma vez, como no caminho por arquivo.
+    failed = [m for m in messages if "Failed password" in m]
+    attempts = {_origin(m) for m in failed}
+    failed += [m for m in messages
+               if m.startswith("Invalid user") and _origin(m) not in attempts]
     count = len(failed)
     results = [finding(
         "failed_logins_count", count,
@@ -150,11 +163,13 @@ def _linux_failed_logins() -> list:
     messages = _journal_ssh_messages()
     if messages is not None:
         return _journal_failed_logins(messages)
+    reason = _journal_cache.get("ssh_error")
     return [finding(
         "failed_logins_unavailable", None, "warning",
         "Deteccao de falhas de logon indisponivel: nem /var/log/auth.log, "
         "/var/log/secure nem o journald (grupo systemd-journal) sao legiveis "
-        "pelo agente. Reinstale/atualize o agente (ver install/INSTALL.md).",
+        "pelo agente. Reinstale/atualize o agente (ver install/INSTALL.md)."
+        + (f" journalctl falhou: {reason}" if reason else ""),
     )]
 
 

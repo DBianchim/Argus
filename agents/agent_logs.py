@@ -184,7 +184,10 @@ def _linux_last_log_entry() -> dict:
         )
     # Sem auth.log/secure: timestamp da ultima entrada do journald (so a data, nao a mensagem)
     if journald_active() and journal_readable():
-        stdout, _, rc = run_cmd(["journalctl", "-n", "1", "--no-pager", "-o", "short-iso"])
+        # Filtra pelas units do SSH (equivalente ao auth.log): sem filtro a ultima entrada
+        # seria a do proprio agente (StandardOutput=journal) e nenhum gap apareceria.
+        stdout, _, rc = run_cmd(["journalctl", "-n", "1", "--no-pager", "-o", "short-iso",
+                                 "-u", "ssh", "-u", "sshd"])
         match = re.match(r"\d{4}-\d{2}-\d{2}T\S+", stdout.strip())
         if rc == 0 and match:
             return finding(

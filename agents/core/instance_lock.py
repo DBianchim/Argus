@@ -31,6 +31,11 @@ except ImportError:          # Windows
 # Exit code quando outra instancia ja esta rodando (diferente de 0/1/2 do argparse).
 EXIT_ALREADY_RUNNING = 3
 
+# Erro de "trava ocupada": no Linux so BlockingIOError (EAGAIN); outros erros do flock
+# (ex.: ENOLCK) nao significam "outra instancia" e sobem ao chamador. No Windows o
+# msvcrt.locking levanta OSError generico.
+_BUSY = (BlockingIOError,) if fcntl is not None else (OSError,)
+
 # Byte travado no Windows: bem alem do PID gravado, para que a segunda instancia
 # consiga LER o PID (leitura de regiao travada falha no Windows).
 _WIN_LOCK_OFFSET = 1 << 20
@@ -58,9 +63,12 @@ class InstanceLock:
         fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o640)
         try:
             self._lock(fd)
-        except OSError:
+        except _BUSY:
             os.close(fd)
             return False
+        except OSError:
+            os.close(fd)
+            raise
         self._fd = fd
         os.ftruncate(fd, 0)
         os.write(fd, str(os.getpid()).encode('ascii'))

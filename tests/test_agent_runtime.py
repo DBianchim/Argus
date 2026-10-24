@@ -31,7 +31,7 @@ sys.path.insert(0, str(AGENTS_DIR))
 
 from agent_backup import STATE_FILENAME, collect
 from core.instance_lock import EXIT_ALREADY_RUNNING, InstanceLock, acquire_instance_lock
-from core.sysutils import state_dir_error, state_file_path
+from core.sysutils import journal_readable, state_dir_error, state_file_path
 
 
 def _config(queue_path: str, backup_dir: str = "") -> SimpleNamespace:
@@ -157,6 +157,13 @@ class TestInstanciaUnica(unittest.TestCase):
         self.assertTrue(acquired)                        # processo morto: reaproveitada
         self.assertEqual(mine.holder_pid(), os.getpid())
 
+    def test_erro_do_flock_que_nao_e_ocupado_nao_vira_outra_instancia(self):
+        if sys.platform == "win32":
+            self.skipTest("flock e especifico do Linux")
+        with patch("core.instance_lock.fcntl.flock", side_effect=OSError(errno.ENOLCK, "x")):
+            with self.assertRaises(OSError):
+                InstanceLock(self.path).acquire()
+
     def test_pasta_sem_permissao_levanta_oserror_para_o_chamador_degradar(self):
         with patch("core.instance_lock.os.open", side_effect=OSError(errno.EROFS, "ro")):
             with self.assertRaises(OSError):
@@ -186,6 +193,24 @@ class TestAcquireInstanceLock(unittest.TestCase):
     def test_sem_permissao_para_a_trava_segue_sem_ela(self):
         with patch("core.instance_lock.os.open", side_effect=OSError(errno.EROFS, "ro")):
             self.assertIsNone(acquire_instance_lock(self.queue))
+
+
+class TestJournalReadable(unittest.TestCase):
+
+    def test_gid_sem_nome_nao_descarta_os_demais_grupos(self):
+        import types
+        grp = types.SimpleNamespace()
+
+        def getgrgid(gid):
+            if gid == 999:
+                raise KeyError(gid)
+            return types.SimpleNamespace(gr_name="systemd-journal")
+
+        grp.getgrgid = getgrgid
+        with patch.dict(sys.modules, {"grp": grp}):
+            with patch("core.sysutils.os.getgroups", return_value=[999, 190], create=True):
+                with patch("core.sysutils.os.geteuid", return_value=1000, create=True):
+                    self.assertTrue(journal_readable())
 
 
 if __name__ == "__main__":

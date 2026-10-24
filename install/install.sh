@@ -168,6 +168,8 @@ create_directories() {
     # ProtectSystem=strict ela tambem entra no ReadWritePaths da unit. Reinstalar
     # corrige instalacoes antigas, em que ela ficava root:root (estado nao gravado).
     mkdir -p "$STATE_DIR"; chown "$APP_USER":"$APP_USER" "$STATE_DIR"; chmod 750 "$STATE_DIR"
+    # agent.lock criado por um runner executado como root travaria o servico fora da trava
+    [[ -e "$STATE_DIR/agent.lock" ]] && chown "$APP_USER":"$APP_USER" "$STATE_DIR/agent.lock"
     mkdir -p "$QUEUE_DIR"; chown "$APP_USER":"$APP_USER" "$QUEUE_DIR"; chmod 750 "$QUEUE_DIR"
     mkdir -p "$LOG_DIR";   chown "$APP_USER":"$APP_USER" "$LOG_DIR";   chmod 750 "$LOG_DIR"
     log_info "Config: $CONFIG_DIR | Estado: $STATE_DIR | Fila: $QUEUE_DIR | Logs: $LOG_DIR"

@@ -112,10 +112,16 @@ def journal_readable() -> bool:
         return True
     try:
         import grp
-        names = {grp.getgrgid(gid).gr_name for gid in os.getgroups()}
-    except (ImportError, KeyError, AttributeError):
+        groups = os.getgroups()
+    except (ImportError, AttributeError):
         return False
-    return bool(names & _JOURNAL_GROUPS)
+    for gid in groups:
+        try:
+            if grp.getgrgid(gid).gr_name in _JOURNAL_GROUPS:
+                return True
+        except KeyError:        # gid sem nome (NSS indisponivel): ignora so esse
+            continue
+    return False
 
 
 # ── execucao de comandos ──────────────────────────────────────────────────────
