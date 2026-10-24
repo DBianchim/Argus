@@ -32,7 +32,8 @@ from pathlib import Path
 from core import queue_local
 import scheduler
 from core.config_loader import load_config
-from core.sysutils import AGENT_VERSION
+from core.instance_lock import acquire_instance_lock
+from core.sysutils import AGENT_VERSION, state_dir_error
 
 # ── constantes ────────────────────────────────────────────────────────────────
 
@@ -190,7 +191,8 @@ def main() -> None:
         2. Configura o sistema de logging
         3. Carrega e valida o config.toml
         4. Exibe o resumo de inicializacao
-        5. Dispara o scheduler (loop infinito)
+        5. Garante instancia unica (trava) e avisa se a pasta de estado nao grava
+        6. Dispara o scheduler (loop infinito)
     """
     args = _parse_args()
 
@@ -208,7 +210,17 @@ def main() -> None:
         exit_code = scheduler.run_dry(config)
         sys.exit(exit_code)
 
+    # Fila e estado sao compartilhados: so um agente por host (encerra se ja houver outro)
+    instance_lock = acquire_instance_lock(config.retry.queue_path)
+
+    state_error = state_dir_error(config.retry.queue_path)
+    if state_error:
+        logger.warning('Pasta de estado nao gravavel: o estado do agente (estagnacao do '
+                       'backup, cache de config) nao sera persistido | %s', state_error)
+
     scheduler.run(config)
+    if instance_lock:
+        instance_lock.release()
 
     logger.info('%s encerrado', APP_NAME)
     sys.exit(0)
