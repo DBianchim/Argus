@@ -23,7 +23,9 @@ _DISK_WARN, _DISK_CRIT = 80.0, 90.0
 
 _DEFAULT_SERVICES = {
     "windows": ["LanmanServer", "Dnscache", "W32Time"],
-    "linux": ["sshd", "cron"],
+    # sshd: o agente resolve ssh/sshd conforme a distro. cron fora do padrao: nao
+    # e critico em todo servidor e nao vem instalado em imagens minimas (falso positivo).
+    "linux": ["sshd"],
 }
 _DEFAULT_BACKUP_PATHS = {
     "windows": ["D:\\Backups", "E:\\Backups"],
