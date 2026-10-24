@@ -21,12 +21,14 @@ import json
 import logging
 import platform
 import re
+from collections import Counter
 from pathlib import Path
 
 from core.config_loader import AgentConfig
 # Utilitarios compartilhados (DRY) — re-exportados abaixo para compatibilidade
 # com os imports dos testes (from agent_acesso import run_cmd, now_iso, ...).
 from core.sysutils import AGENT_VERSION, now_iso, detect_os, run_cmd, run_powershell
+from core.sysutils import journal_readable as _journal_readable
 from core.sysutils import finding as _finding
 
 logger = logging.getLogger(__name__)
@@ -50,12 +52,82 @@ def finding(item: str, value, status: str, detail: str = "") -> dict:
 # Coleta — Linux
 # ---------------------------------------------------------------------------
 
+# Sistemas so com journald (ex.: Ubuntu minimo) nao tem auth.log/secure: o SSH
+# registra apenas no journal. O nome da unit varia por distro (ssh x sshd).
+_JOURNAL_SSH_UNITS = ["ssh", "sshd"]
+_JOURNAL_WINDOW = "24 hours ago"
+
+# Cache do journal por ciclo: falhas e sucessos de logon leem a mesma saida, e
+# so um journalctl deve rodar (zerado no inicio de _collect_findings).
+_journal_cache: dict = {}
+
+
+def _journal_ssh_messages():
+    """
+    Mensagens (sem timestamp/host) do SSH nas ultimas 24h, lidas do journald.
+
+    Returns:
+        Lista de linhas; None se o journal nao esta acessivel (sem journalctl,
+        sem permissao de leitura ou erro do comando). As linhas ficam no host:
+        os coletores extraem apenas contagens e IPs agregados.
+    """
+    if "ssh" in _journal_cache:
+        return _journal_cache["ssh"]
+    messages = None
+    if _journal_readable():
+        args = ["journalctl", "--no-pager", "-o", "cat", "--since", _JOURNAL_WINDOW]
+        for unit in _JOURNAL_SSH_UNITS:
+            args += ["-u", unit]
+        stdout, _, rc = run_cmd(args, timeout=30)
+        if rc == 0:
+            messages = stdout.splitlines()
+    _journal_cache["ssh"] = messages
+    return messages
+
+
+def _top_ips(lines) -> list:
+    """Top 5 IPs de origem ("from <ip>") das linhas, agregados."""
+    ips = []
+    for line in lines:
+        parts = line.split()
+        if "from" in parts:
+            idx = parts.index("from")
+            if idx + 1 < len(parts):
+                ips.append(parts[idx + 1])
+    return [{"ip": ip, "count": c} for ip, c in Counter(ips).most_common(5)]
+
+
+def _journal_failed_logins(messages: list) -> list:
+    # Privacidade: so contagem e IPs agregados; as linhas do journal nao saem do host.
+    # "Invalid user" cobre hosts sem PasswordAuthentication, onde nao ha "Failed password".
+    failed = [m for m in messages if "Failed password" in m or m.startswith("Invalid user")]
+    count = len(failed)
+    results = [finding(
+        "failed_logins_count", count,
+        "warning" if count > _PARAMS["failed_login_threshold"] else "ok",
+        f"{count} tentativas de login SSH falhas (Failed password/Invalid user) "
+        f"nas ultimas 24h, lidas do journald",
+    )]
+    top = _top_ips(failed)
+    if top:
+        results.append(finding(
+            "top_failed_ips", top, "info",
+            "Top 5 IPs com mais falhas de autenticação",
+        ))
+    return results
+
+
 def _linux_failed_logins() -> list:
     results = []
     for log_file in ["/var/log/auth.log", "/var/log/secure"]:
         if not Path(log_file).exists():
             continue
         stdout, _, rc = run_cmd(["grep", "-c", "Failed password", log_file])
+        if rc > 1:
+            # grep: 2 = erro (ex.: auth.log e root:adm 640 e o agente nao esta em adm).
+            # Nao vira "0 falhas": a fonte segue para o journald / aviso de indisponibilidade.
+            logger.warning("Nao foi possivel ler %s (grep rc=%d)", log_file, rc)
+            continue
         count = int(stdout.strip()) if rc == 0 and stdout.strip().isdigit() else 0
         results.append(finding(
             "failed_logins_count", count,
@@ -64,22 +136,26 @@ def _linux_failed_logins() -> list:
         ))
         stdout, _, rc = run_cmd(["grep", "Failed password", log_file])
         if rc == 0 and stdout:
-            from collections import Counter
-            ips = []
-            for line in stdout.splitlines():
-                parts = line.split()
-                if "from" in parts:
-                    idx = parts.index("from")
-                    if idx + 1 < len(parts):
-                        ips.append(parts[idx + 1])
-            top = Counter(ips).most_common(5)
             results.append(finding(
                 "top_failed_ips",
-                [{"ip": ip, "count": c} for ip, c in top],
+                _top_ips(stdout.splitlines()),
                 "info",
                 "Top 5 IPs com mais falhas de autenticação",
             ))
-    return results
+    if results:
+        return results
+
+    # Sem auth.log/secure legivel: journald. Se tambem nao ha como ler, o achado
+    # explicito evita que "nada coletado" seja lido como "nenhuma falha".
+    messages = _journal_ssh_messages()
+    if messages is not None:
+        return _journal_failed_logins(messages)
+    return [finding(
+        "failed_logins_unavailable", None, "warning",
+        "Deteccao de falhas de logon indisponivel: nem /var/log/auth.log, "
+        "/var/log/secure nem o journald (grupo systemd-journal) sao legiveis "
+        "pelo agente. Reinstale/atualize o agente (ver install/INSTALL.md).",
+    )]
 
 
 def _linux_successful_logins() -> list:
@@ -91,6 +167,8 @@ def _linux_successful_logins() -> list:
         if not Path(log_file).exists():
             continue
         stdout, _, rc = run_cmd(["grep", "-c", "Accepted", log_file])
+        if rc > 1:   # erro de leitura (ver _linux_failed_logins)
+            continue
         count = int(stdout.strip()) if rc == 0 and stdout.strip().isdigit() else 0
         results.append(finding(
             "successful_ssh_logins",
@@ -98,6 +176,16 @@ def _linux_successful_logins() -> list:
             "info",
             f"{count} logins SSH bem-sucedidos em {log_file}",
         ))
+    if not results:
+        messages = _journal_ssh_messages()
+        if messages is not None:
+            count = sum(1 for m in messages if m.startswith("Accepted"))
+            results.append(finding(
+                "successful_ssh_logins",
+                {"count": count},
+                "info",
+                f"{count} logins SSH bem-sucedidos nas ultimas 24h, lidos do journald",
+            ))
     return results
 
 
@@ -332,6 +420,7 @@ def _windows_audit_policy() -> list:
 
 def _collect_findings(target_os: str) -> list:
     """Executa todos os coletores do pilar acesso para o OS informado."""
+    _journal_cache.clear()
     collectors_linux = [
         _linux_failed_logins,
         _linux_successful_logins,

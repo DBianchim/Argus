@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "agents"))
 from agent_acesso import (
     _build_standalone_report,
     _collect_findings,
+    _journal_cache,
     detect_os,
     finding,
     now_iso,
@@ -191,9 +192,14 @@ class TestLinuxAccess(unittest.TestCase):
         if counts:
             self.assertEqual(counts[0]["status"], "ok")
 
-    def test_failed_logins_no_file(self):
+    def test_failed_logins_no_file_and_no_journal_is_explicit_warning(self):
+        # Sem auth.log/secure nem journal legivel o coletor NAO pode ficar mudo:
+        # "nada coletado" seria lido como "nenhuma falha".
+        _journal_cache.clear()
         with patch("pathlib.Path.exists", return_value=False):
-            self.assertEqual(_linux_failed_logins(), [])
+            with patch("agent_acesso._journal_readable", return_value=False):
+                results = _linux_failed_logins()
+        self.assertEqual([r["item"] for r in results], ["failed_logins_unavailable"])
 
     def test_sshd_root_login_yes_warning(self):
         fake = "PermitRootLogin yes\nPasswordAuthentication no\n"
@@ -290,6 +296,114 @@ class TestLinuxAccess(unittest.TestCase):
             with patch("agent_acesso.run_cmd", return_value=(fake, "", 0)):
                 results = _linux_sudo_usage()
         self.assertTrue(len(results) > 0)
+
+
+# ===========================================================================
+# Fallback para o journald (sistemas sem auth.log/secure)
+# ===========================================================================
+
+JOURNAL_SSH = "\n".join([
+    "Invalid user admin from 203.0.113.9 port 40001",
+    "Failed password for invalid user admin from 203.0.113.9 port 40001 ssh2",
+    "Failed password for root from 203.0.113.9 port 40002 ssh2",
+    "Failed password for ubuntu from 198.51.100.7 port 40003 ssh2",
+    "Invalid user test from 198.51.100.7 port 40004",
+    "Accepted publickey for david from 192.0.2.10 port 50000 ssh2: ED25519 SHA256:xyz",
+    "Server listening on 0.0.0.0 port 22.",
+])
+
+
+class TestJournaldFallback(unittest.TestCase):
+
+    def setUp(self):
+        _journal_cache.clear()
+        self.addCleanup(_journal_cache.clear)
+        # Sem auth.log/secure e com journal legivel
+        for p in (patch("pathlib.Path.exists", return_value=False),
+                  patch("agent_acesso._journal_readable", return_value=True)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_conta_failed_password_e_invalid_user(self):
+        with patch("agent_acesso.run_cmd", return_value=(JOURNAL_SSH, "", 0)) as mock:
+            results = _linux_failed_logins()
+        count = next(r for r in results if r["item"] == "failed_logins_count")
+        # 3 "Failed password" + 2 linhas "Invalid user"
+        self.assertEqual(count["value"], 5)
+        self.assertEqual(count["status"], "ok")
+        self.assertIn("journald", count["detail"])
+        args = mock.call_args[0][0]
+        self.assertEqual(args[0], "journalctl")
+        self.assertIn("ssh", args)
+        self.assertIn("sshd", args)
+
+    def test_warning_acima_do_limite(self):
+        lines = "\n".join(f"Failed password for x from 203.0.113.{i} port 22 ssh2"
+                          for i in range(11))
+        with patch("agent_acesso.run_cmd", return_value=(lines, "", 0)):
+            results = _linux_failed_logins()
+        count = next(r for r in results if r["item"] == "failed_logins_count")
+        self.assertEqual(count["status"], "warning")
+
+    def test_nao_envia_linhas_brutas(self):
+        with patch("agent_acesso.run_cmd", return_value=(JOURNAL_SSH, "", 0)):
+            results = _linux_failed_logins()
+        payload = json.dumps(results)
+        for fragment in ("ssh2", "port 4000", "publickey", "admin", "ubuntu"):
+            self.assertNotIn(fragment, payload)
+        top = next(r for r in results if r["item"] == "top_failed_ips")
+        self.assertEqual(top["value"][0], {"ip": "203.0.113.9", "count": 3})
+        self.assertEqual(top["value"][1], {"ip": "198.51.100.7", "count": 2})
+
+    def test_journal_vazio_e_zero_falhas_ok(self):
+        with patch("agent_acesso.run_cmd", return_value=("", "", 0)):
+            results = _linux_failed_logins()
+        self.assertEqual([r["item"] for r in results], ["failed_logins_count"])
+        self.assertEqual(results[0]["value"], 0)
+        self.assertEqual(results[0]["status"], "ok")
+
+    def test_journalctl_com_erro_gera_achado_de_indisponibilidade(self):
+        with patch("agent_acesso.run_cmd", return_value=("", "Comando nao encontrado", 1)):
+            results = _linux_failed_logins()
+        self.assertEqual([r["item"] for r in results], ["failed_logins_unavailable"])
+
+    def test_journal_ilegivel_nao_roda_journalctl(self):
+        with patch("agent_acesso._journal_readable", return_value=False), \
+                patch("agent_acesso.run_cmd") as mock:
+            results = _linux_failed_logins()
+        mock.assert_not_called()
+        self.assertEqual(results[0]["item"], "failed_logins_unavailable")
+        self.assertEqual(results[0]["status"], "warning")
+        self.assertIn("indisponivel", results[0]["detail"])
+
+    def test_arquivo_ilegivel_nao_vira_zero_falhas(self):
+        # grep rc=2 (permissao negada em auth.log root:adm) cai para o journal
+        with patch("pathlib.Path.exists", return_value=True), \
+                patch("agent_acesso._journal_readable", return_value=False), \
+                patch("agent_acesso.run_cmd", return_value=("", "Permission denied", 2)):
+            results = _linux_failed_logins()
+        self.assertEqual([r["item"] for r in results], ["failed_logins_unavailable"])
+
+    def test_logins_bem_sucedidos_so_contagem(self):
+        with patch("agent_acesso.run_cmd", return_value=(JOURNAL_SSH, "", 0)):
+            results = _linux_successful_logins()
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["value"], {"count": 1})
+        self.assertNotIn("david", json.dumps(results))
+
+    def test_falhas_e_sucessos_compartilham_uma_leitura_do_journal(self):
+        with patch("agent_acesso.run_cmd", return_value=(JOURNAL_SSH, "", 0)) as mock:
+            _linux_failed_logins()
+            _linux_successful_logins()
+        self.assertEqual(mock.call_count, 1)
+
+    def test_arquivo_legivel_tem_prioridade_sobre_o_journal(self):
+        with patch("pathlib.Path.exists", return_value=True), \
+                patch("agent_acesso.run_cmd") as mock:
+            mock.side_effect = [("2\n", "", 0), ("", "", 1)] * 2
+            results = _linux_failed_logins()
+        self.assertTrue(all(c[0][0][0] != "journalctl" for c in mock.call_args_list))
+        self.assertEqual(results[0]["value"], 2)
 
 
 # ===========================================================================
