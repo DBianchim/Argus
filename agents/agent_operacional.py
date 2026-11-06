@@ -23,7 +23,11 @@ import json
 
 from core.config_loader import AgentConfig, load_config
 # Utilitarios compartilhados (DRY): now_iso, detect_os e execucao de comandos.
-from core.sysutils import AGENT_VERSION, now_iso, detect_os, run_cmd, run_powershell
+from core.sysutils import (AGENT_VERSION, now_iso, detect_os, is_safe_service_name,
+                           run_cmd, run_powershell)
+import logging
+
+logger = logging.getLogger(__name__)
 
 # â”€â”€ constante de plataforma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -141,6 +145,25 @@ def win_disk() -> list[dict]:
         return []
 
 
+def win_uptime() -> int | None:
+    """
+    Tempo de atividade em segundos, a partir de Win32_OperatingSystem.LastBootUpTime.
+
+    Mesma chave do Linux ('uptime_seconds'). Retorna None em falha — o collect()
+    entao omite a chave (a central le com .get(), ver CONTRATO.md).
+    """
+    script = (
+        '$o = Get-CimInstance Win32_OperatingSystem; '
+        '[int64]((Get-Date) - $o.LastBootUpTime).TotalSeconds'
+    )
+    raw = _win_run_powershell(script)
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if value >= 0 else None
+
+
 def win_services(service_list: list[str]) -> list[dict]:
     """
     Verifica o estado dos servicos criticos recebidos como parametro.
@@ -163,6 +186,12 @@ def win_services(service_list: list[str]) -> list[dict]:
     """
     services = []
     for service_name in service_list:
+        # O nome entra no TEXTO do script PowerShell: shell=False nao protege disso.
+        # Nome fora do padrao nunca e executado (ver core.sysutils.is_safe_service_name).
+        if not is_safe_service_name(service_name):
+            logger.warning('Nome de servico recusado (caracteres invalidos): %r', service_name)
+            services.append({'name': str(service_name), 'status': 'not_found'})
+            continue
         # .ToString() converte os enums Status e StartType para string
         # antes do ConvertTo-Json, evitando retorno como inteiro
         script = (
@@ -309,6 +338,11 @@ def linux_services(service_list: list[str]) -> list[dict]:
     """
     services = []
     for service_name in service_list:
+        # Um '-' inicial viraria opcao do systemctl; mesma regra do Windows.
+        if not is_safe_service_name(service_name):
+            logger.warning('Nome de servico recusado (caracteres invalidos): %r', service_name)
+            services.append({'name': str(service_name), 'status': 'not_found'})
+            continue
         unit    = service_name
         status  = run_command(['systemctl', 'is-active',  unit]) or 'not-found'
         alias   = _SERVICE_ALIASES.get(service_name)
@@ -368,6 +402,9 @@ def collect(config: AgentConfig) -> dict:
         metrics['memory']   = win_memory()
         metrics['disk']     = win_disk()
         metrics['services'] = win_services(config.operacional.critical_services_windows)
+        uptime = win_uptime()
+        if uptime is not None:
+            metrics['uptime_seconds'] = uptime
     else:
         metrics['cpu']            = linux_cpu()
         metrics['memory']         = linux_memory()
