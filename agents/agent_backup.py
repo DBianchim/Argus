@@ -32,13 +32,16 @@ Autores: David Bianchim
 """
 
 import glob
+import gzip
 import hashlib
 import json
 import logging
+import lzma
 import os
 import time
 import tarfile
 import zipfile
+import zlib
 
 from core.config_loader import AgentConfig, load_config
 # Utilitarios compartilhados (DRY): now_iso e detect_os.
@@ -370,7 +373,11 @@ def verify_file_integrity(
         hash_result = _check_hash(filepath, previous, signature or _file_signature(filepath))
         result.update(hash_result)
 
-    except (zipfile.BadZipFile, tarfile.TarError) as e:
+    # Arquivo comprimido truncado/corrompido: o gzip/xz/zlib levanta EOFError ou
+    # erros proprios (nao TarError). Sem isso, um .tar.gz truncado caia no
+    # 'except Exception' como ERROR (aviso) em vez de FAIL (critico).
+    except (zipfile.BadZipFile, tarfile.TarError, EOFError, zlib.error,
+            gzip.BadGzipFile, lzma.LZMAError) as e:
         result.update({
             'integrity_check': 'FAIL',
             'method':          'structural_test',

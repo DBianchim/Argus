@@ -20,6 +20,7 @@ import datetime
 import logging
 import os
 import platform
+import re
 import subprocess
 import tempfile
 
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 # Versao unica do pacote de agentes, enviada em cada payload (agent_version).
 # Incremente a cada release que altere a coleta ou o contrato (ver CONTRATO.md
 # na raiz do projeto). E a fonte unica: runner.py e os 4 agentes leem daqui.
-AGENT_VERSION = '1.2.0'
+AGENT_VERSION = '1.3.0'
 
 
 # ── arquivos de estado ────────────────────────────────────────────────────────
@@ -159,6 +160,20 @@ def run_cmd(args: list[str], timeout: int = 15) -> tuple[str, str, int]:
         return '', f'Timeout ao executar: {" ".join(args)}', 1
     except OSError as exc:
         return '', str(exc), 1
+
+
+# Nome de servico aceito antes de ir para um script PowerShell ou para o systemctl.
+# shell=False protege do shell do SO, mas NAO do texto de um script PowerShell:
+# um nome com aspas fecharia a string e executaria comandos. Um '-' inicial viraria
+# opcao do systemctl. Mesma regra da central (api/app/config_defaults.py).
+# '$' e permitido (instancias nomeadas do SQL Server: MSSQL$SQLEXPRESS): dentro de
+# aspas simples o PowerShell nao expande variaveis. Aspas e parenteses nao entram.
+_SERVICE_NAME_RE = re.compile(r'^[A-Za-z0-9_][A-Za-z0-9_.@$\- ]{0,254}$')
+
+
+def is_safe_service_name(name) -> bool:
+    """True se name pode ser usado com seguranca em scripts/comandos de servico."""
+    return isinstance(name, str) and _SERVICE_NAME_RE.fullmatch(name) is not None
 
 
 def run_powershell(script: str, timeout: int = 30) -> tuple[str, str, int]:

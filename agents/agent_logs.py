@@ -71,7 +71,7 @@ def _linux_journald_integrity() -> dict:
         "journald_integrity",
         {"returncode": rc, "output": (stdout + stderr)[:500]},
         "ok" if passed else "warning",
-        "Verificação de integridade HMAC do journald",
+        "Verificação de consistência do journald (journalctl --verify; sem selamento FSS)",
     )
 
 
