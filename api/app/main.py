@@ -122,12 +122,32 @@ app.include_router(users.router)
 
 _DIST = Path(__file__).resolve().parent.parent.parent / "dashboard" / "dist"
 
+
+def _dist_file(dist: Path, full_path: str) -> Path | None:
+    """Arquivo do build do dashboard para full_path, ou None.
+
+    Resolve o caminho e exige que fique DENTRO de dist: sem isso, um pedido com
+    `..` (ou `%2e%2e`, que o Starlette decodifica) serviria qualquer arquivo
+    legível do contêiner (travessia de diretório, CWE-22).
+    """
+    if not full_path:
+        return None
+    root = dist.resolve()
+    try:
+        candidate = (root / full_path).resolve()
+    except (OSError, ValueError):
+        return None
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return None
+    return candidate
+
+
 if _DIST.is_dir():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa(full_path: str):
-        candidate = _DIST / full_path
-        if full_path and candidate.is_file():
+        candidate = _dist_file(_DIST, full_path)
+        if candidate is not None:
             return FileResponse(candidate)
         # Qualquer rota não-arquivo → index.html (client-side routing)
         return FileResponse(_DIST / "index.html")

@@ -14,7 +14,27 @@ O blob usa LISTAS ÚNICAS (`critical_services`, `paths`): o `Server` já tem `os
 então não precisa do split `_windows/_linux`. O agente mapeia para o SO dele.
 """
 
+import re
 from typing import Any
+
+# Nome de serviço aceito em `operacional.critical_services`. O agente usa o nome
+# dentro de um script PowerShell (Windows) e como argumento do systemctl (Linux):
+# aspas, `$`, `;`, `|` etc. permitiriam injeção de comandos, e um `-` inicial
+# viraria opção do systemctl. '$' é permitido (MSSQL$SQLEXPRESS): entre aspas
+# simples o PowerShell não expande. O agente aplica a mesma regra (defesa em camadas).
+SERVICE_NAME_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.@$\- ]{0,254}$")
+
+
+def invalid_service_names(config: dict | None) -> list[str]:
+    """Nomes em operacional.critical_services que não passam em SERVICE_NAME_RE."""
+    op = (config or {}).get("operacional") or {}
+    services = op.get("critical_services")
+    if services is None:
+        return []
+    if not isinstance(services, list):
+        return [repr(services)]
+    return [repr(s) for s in services
+            if not isinstance(s, str) or not SERVICE_NAME_RE.fullmatch(s)]
 
 # Limiares históricos (estavam fixos em analysis.py)
 _CPU_WARN, _CPU_CRIT = 75.0, 90.0

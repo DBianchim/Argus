@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .config_defaults import invalid_service_names
+
 Pilar = Literal["operacional", "backup", "acesso", "logs"]
 OsFamily = Literal["windows", "linux"]
 Role = Literal["admin", "operator", "viewer"]
@@ -76,6 +78,20 @@ class ServerConfigOut(BaseModel):
 class ServerConfigUpdate(BaseModel):
     """Substitui a config inteira do servidor (PUT)."""
     config: dict[str, Any]
+
+    @field_validator("config")
+    @classmethod
+    def _safe_service_names(cls, v: dict) -> dict:
+        # Nome de serviço vai para um script PowerShell/systemctl no agente:
+        # recusa caracteres que permitiriam injeção (ver config_defaults).
+        invalid = invalid_service_names(v)
+        if invalid:
+            raise ValueError(
+                "nome de serviço inválido em operacional.critical_services: "
+                + ", ".join(invalid)
+                + " (use letras, números, espaço e _ . @ $ -)"
+            )
+        return v
 
 
 class ServerPatch(BaseModel):
