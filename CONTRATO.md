@@ -149,3 +149,22 @@ cadastrados mantêm a lista salva e podem editá-la na configuração do servido
 `agent.lock` ficam na pasta pai de `retry.queue_path`. Se essa pasta não aceita escrita, o
 agente registra aviso no início e o pilar backup envia `integrity.state_warning` (já existia).
 O `runner.py` encerra com código 3 se outro agente do mesmo host detém `agent.lock`.
+
+## 8. Revisão pós-validação: uptime no Windows e nomes de serviço (1.3.0)
+
+Mudanças **aditivas**, enviadas a partir da `AGENT_VERSION` 1.3.0.
+
+**Pilar `operacional` (Windows):** passa a enviar `metrics.uptime_seconds` (inteiro, segundos
+desde o último boot, via `Win32_OperatingSystem.LastBootUpTime`), a mesma chave e o mesmo tipo
+do Linux. Se a leitura falhar, a chave é omitida (a central lê com `.get()`).
+
+**Nomes de serviço:** cada item de `operacional.critical_services` deve casar com
+`^[A-Za-z0-9_][A-Za-z0-9_.@$\- ]{0,254}$`. A central recusa um `PUT /servers/{id}/config` fora
+desse padrão com **422**; o agente aplica a mesma regra e **não executa** PowerShell/systemctl
+para um nome inválido (que pode vir de uma config antiga), enviando o item com
+`status: "not_found"`. Motivo: o nome entra no texto de um script PowerShell, e `shell=False`
+não protege desse caso (injeção de comandos).
+
+**Pilar `backup`:** um `.tar.gz`/`.tar.xz` truncado ou com compressão inválida passa a ser
+`integrity_check: "FAIL"` → `status: "INTEGRITY_FAIL"` (antes: `ERROR` → `WARN`). Nenhuma chave
+nova; só o valor reflete corretamente a falha estrutural.
