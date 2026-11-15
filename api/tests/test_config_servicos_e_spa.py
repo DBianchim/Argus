@@ -1,5 +1,5 @@
 """
-test_config_servicos_e_spa.py — Validação de nomes de serviço e caminhos da SPA
+test_config_servicos_e_spa.py - Validação de nomes de serviço e caminhos da SPA
 
     - nome de serviço com caracteres de injeção é recusado no PUT da config (422);
     - o catch-all da SPA não serve arquivo fora de dashboard/dist (CWE-22).
@@ -62,5 +62,5 @@ def test_spa_nao_serve_arquivo_fora_do_dist(tmp_path):
     assert _dist_file(dist, "assets/../../segredo.txt") is None
     assert _dist_file(dist, str((tmp_path / "segredo.txt").resolve())) is None  # absoluto
     assert _dist_file(dist, "") is None
-    assert _dist_file(dist, "assets") is None        # diretório → cai no index.html
+    assert _dist_file(dist, "assets") is None        # diretório -> cai no index.html
     assert _dist_file(dist, "nao-existe.js") is None

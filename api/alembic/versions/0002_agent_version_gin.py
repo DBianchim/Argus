@@ -6,7 +6,7 @@ Adiciona:
   - Indice GIN (jsonb_path_ops) sobre metrics.metrics: consultas dentro do JSON
     (ex.: backup.status = 'SLA_BREACH') deixam de varrer a tabela inteira.
     jsonb_path_ops e a variante compacta, otimizada para operadores de
-    containment (@>) — o caso tipico do dashboard.
+    containment (@>) - o caso tipico do dashboard.
 
 Revision ID: 0002_agent_version_gin
 Revises: 0001_initial

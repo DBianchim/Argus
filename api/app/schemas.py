@@ -1,8 +1,8 @@
 """
-schemas.py — Modelos Pydantic (validação de entrada e saída)
+schemas.py - Modelos Pydantic (validação de entrada e saída)
 
 IngestEnvelope reflete o contrato do agente (agents/core/sender.py): se o corpo não
-casar com este schema, o FastAPI responde 422 — exatamente o código que faz o agente
+casar com este schema, o FastAPI responde 422 - exatamente o código que faz o agente
 descartar o payload (não retentar).
 """
 
@@ -18,7 +18,7 @@ OsFamily = Literal["windows", "linux"]
 Role = Literal["admin", "operator", "viewer"]
 
 
-# ── entrada (ingest) ──────────────────────────────────────────────────────────
+# entrada (ingest)
 
 class IngestEnvelope(BaseModel):
     """Envelope enviado pelos agentes em POST /api/v1/ingest."""
@@ -61,7 +61,7 @@ class IngestStatsOut(BaseModel):
     persist_ms_max:     float
 
 
-# ── configuração do agente (gerenciada pela central) ──────────────────────────
+# configuração do agente (gerenciada pela central)
 
 class AgentConfigOut(BaseModel):
     """Resposta de GET /agent-config (consumida pelo agente)."""
@@ -118,7 +118,7 @@ class AlertAckOut(BaseModel):
     acked_at: datetime.datetime
 
 
-# ── saída (consultas) ─────────────────────────────────────────────────────────
+# saída (consultas)
 
 class ServerOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -133,7 +133,7 @@ class ServerOut(BaseModel):
 
 
 class ServerCreateOut(BaseModel):
-    """Resposta do registro — o token só existe em claro nesta resposta, uma vez."""
+    """Resposta do registro - o token só existe em claro nesta resposta, uma vez."""
     server: ServerOut
     token:  str
 
@@ -165,7 +165,7 @@ class HealthOut(BaseModel):
     database: str
 
 
-# ── autenticação de usuários ──────────────────────────────────────────────────
+# autenticação de usuários
 
 class LoginIn(BaseModel):
     username: str = Field(min_length=1, max_length=64)
@@ -218,17 +218,17 @@ class PasswordReset(BaseModel):
 
 
 class PasswordChange(BaseModel):
-    """Usuário troca a própria senha — exige a senha atual."""
+    """Usuário troca a própria senha - exige a senha atual."""
     current_password: str = Field(min_length=1, max_length=255)
     new_password:      str = Field(min_length=8, max_length=255)
 
 
 class SelfProfilePatch(BaseModel):
-    """Usuário edita o próprio nome de exibição (Minha conta) — não o papel/ativo."""
+    """Usuário edita o próprio nome de exibição (Minha conta) - não o papel/ativo."""
     display_name: str | None = Field(default=None, max_length=255)
 
 
-# ── overview (motor de análise) ───────────────────────────────────────────────
+# overview (motor de análise)
 
 class AlertOut(BaseModel):
     severity:     str            # 'warn' | 'crit'
@@ -238,11 +238,11 @@ class AlertOut(BaseModel):
     detail:       str
     server_id:    int
     hostname:     str
-    # Reconhecimento (Tela de Alertas / Detalhe de Servidor) — None = não reconhecido.
+    # Reconhecimento (Tela de Alertas / Detalhe de Servidor) - None = não reconhecido.
     acked_by:     str | None = None
     acked_at:     datetime.datetime | None = None
     # Melhor esforço: hora da última transição não-OK do servidor (granularidade
-    # por servidor, não por item — ver crud.latest_bad_notification).
+    # por servidor, não por item - ver crud.latest_bad_notification).
     since:        datetime.datetime | None = None
 
 
@@ -255,7 +255,7 @@ class ServerOverview(BaseModel):
     pilar_statuses: dict[str, str]
     last_seen_at:   datetime.datetime | None
     agent_version:  str | None
-    # Resumo operacional (pilar "operacional" do último payload) — None quando
+    # Resumo operacional (pilar "operacional" do último payload) - None quando
     # o servidor ainda não reportou esse pilar. Alimenta o card do dashboard.
     cpu_pct:         float | None
     mem_pct:         float | None

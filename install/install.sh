@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# install.sh — Instalador do agente Argus para Linux (bootstrap pela central)
+# install.sh - Instalador do agente Argus para Linux (bootstrap pela central)
 #
 # Uso (uma linha, como root):
 #   curl -fsSL http://<central>/install/install.sh \
@@ -21,7 +21,7 @@
 
 set -euo pipefail
 
-# ── constantes ────────────────────────────────────────────────────────────────
+# constantes
 APP_NAME="argus-agent"
 APP_USER="argus-agent"
 INSTALL_DIR="/opt/argus/agent-monitor"
@@ -47,7 +47,7 @@ abort() { log_error "$*"; exit 1; }
 NO_START=false
 for arg in "$@"; do [[ "$arg" == "--no-start" ]] && NO_START=true; done
 
-# ── distro / pacotes ────────────────────────────────────────────────────────────
+# distro / pacotes
 detect_distro() {
     if   command -v apt-get &>/dev/null; then echo "apt"
     elif command -v dnf     &>/dev/null; then echo "dnf"
@@ -69,7 +69,7 @@ version_gte() {
     python3 -c "import sys;a=tuple(int(x) for x in '$1'.split('.'));b=tuple(int(x) for x in '$2'.split('.'));sys.exit(0 if a>=b else 1)"
 }
 
-# ── pre-requisitos ───────────────────────────────────────────────────────────────
+# pre-requisitos
 check_prerequisites() {
     log_section "Verificando pre-requisitos"
     [[ "$EUID" -eq 0 ]] || abort "Execute como root (use sudo)."
@@ -91,7 +91,7 @@ check_prerequisites() {
     log_info "Python $PYTHON_VERSION, pip3, systemd e curl/unzip presentes"
 }
 
-# ── parametros (env vars ou prompt) ─────────────────────────────────────────────
+# parametros (env vars ou prompt)
 collect_params() {
     log_section "Parametros de conexao"
     ARGUS_HOST="${ARGUS_HOST:-}"
@@ -113,7 +113,7 @@ collect_params() {
     log_info "Central: $ARGUS_HOST"
 }
 
-# ── download dos artefatos ───────────────────────────────────────────────────────
+# download dos artefatos
 download_artifacts() {
     log_section "Baixando artefatos da central"
     TMP=$(mktemp -d)
@@ -129,7 +129,7 @@ download_artifacts() {
     log_info "Artefatos baixados e extraidos"
 }
 
-# ── usuario, diretorios, arquivos ─────────────────────────────────────────────────
+# usuario, diretorios, arquivos
 create_user() {
     log_section "Usuario do sistema"
     if id "$APP_USER" &>/dev/null; then
@@ -175,7 +175,7 @@ create_directories() {
     log_info "Config: $CONFIG_DIR | Estado: $STATE_DIR | Fila: $QUEUE_DIR | Logs: $LOG_DIR"
 }
 
-# ── CA (para o agente confiar no HTTPS da central) ──────────────────────────────
+# CA (para o agente confiar no HTTPS da central)
 install_ca() {
     log_section "Certificado da central (CA)"
     # O agente Python valida o TLS contra este arquivo (ca_cert no config.toml).
@@ -190,7 +190,7 @@ install_ca() {
     fi
 }
 
-# ── config.toml (com ca_cert; sem token) ─────────────────────────────────────────
+# config.toml (com ca_cert; sem token)
 generate_config() {
     log_section "Gerando config.toml"
     [[ -f "$CONFIG_FILE" ]] && cp "$CONFIG_FILE" "$CONFIG_FILE.bak.$(date +%Y%m%d_%H%M%S)"
@@ -246,7 +246,7 @@ generate_env_file() {
     log_section "Token (arquivo protegido)"
     [[ -f "$ENV_FILE" ]] && { cp "$ENV_FILE" "$ENV_FILE.bak.$(date +%Y%m%d_%H%M%S)"; chmod 600 "$ENV_FILE.bak."*; }
     cat > "$ENV_FILE" << EOF
-# Token do Argus Agent — NAO compartilhe nem versione.
+# Token do Argus Agent - NAO compartilhe nem versione.
 # Carregado pelo systemd como AGENT_API_TOKEN. Rotacionar: edite e reinicie o servico.
 AGENT_API_TOKEN=${ARGUS_TOKEN}
 EOF
@@ -290,7 +290,7 @@ EOF
     log_info "Servico systemd registrado e habilitado no boot"
 }
 
-# ── execucao ──────────────────────────────────────────────────────────────────────
+# execucao
 check_prerequisites
 collect_params
 download_artifacts

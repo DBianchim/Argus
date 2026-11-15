@@ -1,0 +1,12 @@
+CT02 - Backup fora do prazo (UBUNTU26, agente 1.1.0, intervalo 60 s, SLA 24 h) - horarios UTC (-03:00 = local)
+2026-10-22T23:10:41Z  touch -d @1792537821 em backup_03.zip: mtime 2026-10-22 23:02:41.817835596 -> 2026-10-20 23:10:21 (48 h atras)
+2026-10-22T23:11:27Z  payload: mais recente passou a ser backup_02_copia.zip (idade 20,74 h, OK) -> pilar continuou Normal (o arquivo mais recente ainda estava dentro do prazo; foi necessario remover os demais)
+2026-10-22T23:14:12Z  rm backup_01.zip backup_02.zip backup_02_copia.zip (arquivos de teste); restou so backup_03.zip (mtime 2026-10-20 23:10:21)
+2026-10-22T23:14:31Z  (20:14:31-03:00) payload: status=SLA_BREACH, path=backup_03.zip, age_hours=48.07, sla_ok=false. Deteccao 16 s apos a remocao.
+   Health: pilar backup=crit; servidor=crit.
+   Alerta: severity=crit, pilar=backup, item=status, title="Backup fora do SLA", detail="Último backup há 48.07h (SLA: 24h)"
+   Notificacao: NENHUMA nova (ultimo id 1374); servidor ja estava CRITICO (sshd/cron) -> sem transicao de estado.
+   Obs: acked_by="[USUARIO]" acked_at=2026-07-18 reaplicado ao alerta novo (mesmo item backup/status).
+2026-10-22T20:30:12-03:00 captura de tela salva (captura-sla.png, CT02)
+2026-10-22T23:31:04Z (20:31:04-03:00) restauracao do mtime: touch -d @1792710161 em backup_03.zip (antes 2026-10-20 23:10:21; depois 2026-10-22 23:02:41.000 - a fracao de segundo original .817 nao e recuperavel por epoch inteiro) (a 1a senha SSH foi digitada incorretamente).
+2026-10-22T23:32:29Z payload: status=WARN, path=backup_03.zip, age_hours=0.5 sla_ok=true. Pilar backup=warn. Isso e a ESTAGNACAO por definicao do contrato: mesmo caminho, mtime alterado, SHA-256 identico ao observado antes -> 'novo' backup identico. Artefato esperado do ato de restaurar o mtime (nao e defeito).

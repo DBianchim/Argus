@@ -149,7 +149,7 @@ def win_uptime() -> int | None:
     """
     Tempo de atividade em segundos, a partir de Win32_OperatingSystem.LastBootUpTime.
 
-    Mesma chave do Linux ('uptime_seconds'). Retorna None em falha — o collect()
+    Mesma chave do Linux ('uptime_seconds'). Retorna None em falha - o collect()
     entao omite a chave (a central le com .get(), ver CONTRATO.md).
     """
     script = (

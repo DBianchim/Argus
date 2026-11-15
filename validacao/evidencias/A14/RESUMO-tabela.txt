@@ -1,0 +1,14 @@
+exec | req | HTTP200 | falhas rede | req/s | cli p50 | cli p95 | cli p99 | cli max | central p50 | central p95 | central max | falhas central | recebidos | RAM livre host | checkpoint | removidos
+aquec | 480 | 480 | 0 | 6.89 | 26.0 | 65.1 | 355.5 | 419.9 | 9.3 | 34.68 | 406.79 | 0 | 480 | 1,7 GB | - | 20/20
+1 | 460 | 460 | 0 | 6.6 | 29.2 | 436.8 | 866.1 | 1312.7 | 9.9 | 416.2 | 1290.57 | 0 | 460 | 1,8 GB | 205 buf/21.344 s | 20/20
+2 | 472 | 472 | 0 | 6.73 | 29.2 | 113.3 | 208.9 | 406.8 | 9.72 | 44.22 | 89.35 | 0 | 472 | 1,6 GB | - | 20/20
+3 | 476 | 476 | 0 | 6.8 | 22.5 | 45.7 | 67.4 | 82.5 | 7.79 | 15.15 | 55.87 | 0 | 476 | 1,7 GB | - | 20/20
+4 | 476 | 476 | 0 | 6.77 | 31.0 | 104.0 | 202.3 | 364.4 | 10.03 | 36.26 | 145.74 | 0 | 476 | 1,7 GB | - | 20/20
+5 | 476 | 476 | 0 | 6.87 | 26.2 | 54.6 | 75.3 | 131.1 | 8.57 | 18.83 | 61.31 | 0 | 476 | 1,9 GB | 84 buf/8.451 s | 20/20
+cliente p95: mediana=104.0 max=436.8 min=45.7
+cliente p99: mediana=202.3 max=866.1 min=67.4
+cliente max: mediana=364.4 max=1312.7 min=82.5
+central p95: mediana=36.26 max=416.2 min=15.15
+central max: mediana=89.35 max=1290.57 min=55.87
+vazao: mediana=6.77 max=6.87 min=6.6
+execucoes medidas com central p95 < 200: 4 de 5 | falhas de rede totais: 0 | falhas na central (total_failed nas medidas): [0, 0, 0, 0, 0]

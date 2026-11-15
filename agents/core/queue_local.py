@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-queue_local.py — Fila local de payloads pendentes
+queue_local.py - Fila local de payloads pendentes
 
 Responsabilidade:
     Persistir payloads em disco quando o sistema central estiver
@@ -34,7 +34,7 @@ from core.config_loader import AgentConfig
 logger = logging.getLogger(__name__)
 
 
-# ── utilitarios internos ──────────────────────────────────────────────────────
+# utilitarios internos
 
 def _queue_dir(config: AgentConfig) -> Path:
     path = Path(config.retry.queue_path)
@@ -42,7 +42,7 @@ def _queue_dir(config: AgentConfig) -> Path:
 
     # Restringe a fila a apenas o usuario do processo (rwx------).
     # Os payloads podem conter dados de seguranca do servidor; nenhum outro
-    # usuario deve le-los. No Windows, os.chmod nao aplica bits POSIX — o
+    # usuario deve le-los. No Windows, os.chmod nao aplica bits POSIX - o
     # except captura silenciosamente (as ACLs sao geridas pelo install script).
     try:
         os.chmod(path, 0o700)
@@ -85,7 +85,7 @@ def _enforce_queue_limit(queue_dir: Path, max_files: int) -> None:
             )
 
 
-# ── funcoes publicas ──────────────────────────────────────────────────────────
+# funcoes publicas
 
 def enqueue(payload: dict, config: AgentConfig) -> None:
     """

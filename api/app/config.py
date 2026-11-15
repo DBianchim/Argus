@@ -1,5 +1,5 @@
 """
-config.py — Configuração da API via variáveis de ambiente / .env
+config.py - Configuração da API via variáveis de ambiente / .env
 
 Usa pydantic-settings: lê de variáveis de ambiente E de um arquivo .env, com a
 variável de ambiente tendo precedência. Em produção, defina DATABASE_URL e
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # Sessões de login do dashboard
     session_ttl_hours: int = 12
 
-    # Sem payload por mais que isso → servidor considerado OFFLINE
+    # Sem payload por mais que isso -> servidor considerado OFFLINE
     offline_after_seconds: int = 600
 
     # Intervalo do loop em background que detecta servidores OFFLINE

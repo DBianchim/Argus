@@ -1,14 +1,14 @@
 """
-install.py — Artefatos de instalação dos agentes (bootstrap "a partir da central").
+install.py - Artefatos de instalação dos agentes (bootstrap "a partir da central").
 
 Rotas PÚBLICAS (sem autenticação) que permitem instalar um agente em um servidor
 com um único comando, sem copiar arquivos à mão:
 
-    GET /install/argus-agent.zip  → o código do agente, zipado em memória
-    GET /install/install.ps1      → instalador Windows (PowerShell)
-    GET /install/install.sh       → instalador Linux
+    GET /install/argus-agent.zip  -> o código do agente, zipado em memória
+    GET /install/install.ps1      -> instalador Windows (PowerShell)
+    GET /install/install.sh       -> instalador Linux
 
-A CA do Caddy (`/install/ca.crt`) NÃO é servida aqui — quem a serve é o próprio
+A CA do Caddy (`/install/ca.crt`) NÃO é servida aqui - quem a serve é o próprio
 Caddy, a partir do seu repositório de certificados (ver docker/Caddyfile).
 
 Servir o código e os scripts sem autenticação é seguro: não há segredo neles. O
@@ -27,12 +27,12 @@ from ..rate_limit import limiter
 
 router = APIRouter(prefix="/install", tags=["install"])
 
-# Sem autenticação por design (ver docstring do módulo) — limite por IP contra
+# Sem autenticação por design (ver docstring do módulo) - limite por IP contra
 # flood no endpoint que monta o zip em memória a cada chamada.
 _LIMIT = "30/minute"
 
 # Layout dentro da imagem (Dockerfile copia agents/ e install/):
-#   /app/api/app/routers/install.py  → sobe 4 níveis → /app
+#   /app/api/app/routers/install.py  -> sobe 4 níveis -> /app
 _ROOT = Path(__file__).resolve().parents[3]
 _AGENTS_DIR = _ROOT / "agents"
 _INSTALL_DIR = _ROOT / "install"

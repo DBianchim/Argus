@@ -1,0 +1,15 @@
+# CT11 parte Linux: 12 tentativas SSH com usuario inexistente e senha errada, de DESKTOP-G6ID80A para [IP-INTERNO]
+inicio 2026-10-23T20:01:06-03:00 (2026-10-23T23:01:06Z)
+tentativa 1: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 2: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 3: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 4: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 5: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 6: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 7: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 8: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 9: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 10: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 11: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+tentativa 12: ct11-inexistente@[IP-INTERNO]: Permission denied (publickey,password).
+fim 2026-10-23T20:01:56-03:00 (2026-10-23T23:01:56Z)

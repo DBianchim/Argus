@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-mock_server.py — Servidor HTTP mock para validação do pipeline Argus
+mock_server.py - Servidor HTTP mock para validação do pipeline Argus
 
 Recebe payloads dos agentes, valida estrutura e imprime resumo.
 Não requer banco de dados nem dependências externas.
 
 Uso:
-    python tools\mock_server.py                # modo normal  → retorna 200 OK
-    python tools\mock_server.py --mode fail    # modo fail    → retorna 503 (testa fila)
-    python tools\mock_server.py --mode slow    # modo slow    → atrasa 15s (testa timeout)
+    python tools\mock_server.py                # modo normal  -> retorna 200 OK
+    python tools\mock_server.py --mode fail    # modo fail    -> retorna 503 (testa fila)
+    python tools\mock_server.py --mode slow    # modo slow    -> atrasa 15s (testa timeout)
     python tools\mock_server.py --port 9000    # porta alternativa
 
 Depois, em outro terminal:
@@ -25,7 +25,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import ClassVar
 
 
-# ── configuração do servidor ──────────────────────────────────────────────────
+# configuração do servidor
 
 class _Config:
     mode: str = "normal"
@@ -35,7 +35,7 @@ class _Config:
 _cfg = _Config()
 
 
-# ── formatação de saída ───────────────────────────────────────────────────────
+# formatação de saída
 
 def _ts() -> str:
     return datetime.datetime.utcnow().strftime("%H:%M:%S")
@@ -102,7 +102,7 @@ def _validate_payload(payload: dict) -> list[str]:
     return errors
 
 
-# ── handler HTTP ──────────────────────────────────────────────────────────────
+# handler HTTP
 
 class _Handler(BaseHTTPRequestHandler):
 
@@ -138,7 +138,7 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(401, "unauthorized")
             return
 
-        # Modo slow — simula timeout
+        # Modo slow - simula timeout
         if _cfg.mode == "slow":
             print(f"[{_ts()}] MODO SLOW — aguardando 15s para simular timeout...")
             time.sleep(15)
@@ -157,7 +157,7 @@ class _Handler(BaseHTTPRequestHandler):
         hostname = payload.get("hostname", "?")
         os_fam   = payload.get("os_family", "?")
 
-        # Modo fail — retorna 503 sem processar
+        # Modo fail - retorna 503 sem processar
         if _cfg.mode == "fail":
             print(f"[{_ts()}] #{_Handler.request_count:03d} ← {pilar:12s} | "
                   f"host={hostname} os={os_fam}")
@@ -185,7 +185,7 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(200, "accepted")
 
 
-# ── entry point ───────────────────────────────────────────────────────────────
+# entry point
 
 def main() -> None:
     parser = argparse.ArgumentParser(

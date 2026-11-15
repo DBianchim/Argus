@@ -1,10 +1,10 @@
 """
-test_rate_limit.py — Rate limiting por IP em endpoints públicos/sensíveis.
+test_rate_limit.py - Rate limiting por IP em endpoints públicos/sensíveis.
 
-/install/*: limite apertado (30/minuto) — endpoint público, sem autenticação,
+/install/*: limite apertado (30/minuto) - endpoint público, sem autenticação,
 que monta um zip em memória a cada chamada. Testado até o 429 de verdade.
 
-/api/v1/ingest: limite deliberadamente alto (1500/minuto) — é um disjuntor
+/api/v1/ingest: limite deliberadamente alto (1500/minuto) - é um disjuntor
 contra flood/token comprometido, não um throttle do uso normal (um agente
 recuperando de uma queda reenvia até 1000 payloads em sequência). Não
 exaurimos esse teto aqui (seria lento e não é o ponto); confirmamos apenas que
@@ -20,7 +20,7 @@ from conftest import AGENT_HEADERS, make_envelope
 
 @pytest.fixture(autouse=True)
 def _reset_limiter():
-    """O limiter é global de processo (chave = IP) — zera entre testes para
+    """O limiter é global de processo (chave = IP) - zera entre testes para
     um teste não herdar contagem de outro (todas as chamadas de teste saem
     do mesmo IP simulado do ASGITransport)."""
     limiter.reset()
@@ -34,7 +34,7 @@ async def test_install_script_allows_normal_use(client):
 
 
 async def test_install_script_blocks_after_limit(client):
-    # O limite é 30/minuto — a 31ª chamada no mesmo minuto deve ser barrada.
+    # O limite é 30/minuto - a 31ª chamada no mesmo minuto deve ser barrada.
     for _ in range(30):
         resp = await client.get("/install/install.sh")
         assert resp.status_code == 200
@@ -44,7 +44,7 @@ async def test_install_script_blocks_after_limit(client):
 
 
 async def test_install_endpoints_have_independent_paths_share_limiter_key(client):
-    # slowapi conta por (chave, rota) — cada endpoint decorado tem seu próprio
+    # slowapi conta por (chave, rota) - cada endpoint decorado tem seu próprio
     # balde, então esgotar install.sh não deve afetar install.ps1.
     for _ in range(30):
         await client.get("/install/install.sh")

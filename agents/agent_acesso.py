@@ -1,5 +1,5 @@
 """
-agent_acesso.py — Agente de Segurança de Acesso
+agent_acesso.py - Agente de Segurança de Acesso
 ================================================
 Pilar: acesso
 Compatível: Linux e Windows
@@ -25,7 +25,7 @@ from collections import Counter
 from pathlib import Path
 
 from core.config_loader import AgentConfig
-# Utilitarios compartilhados (DRY) — re-exportados abaixo para compatibilidade
+# Utilitarios compartilhados (DRY) - re-exportados abaixo para compatibilidade
 # com os imports dos testes (from agent_acesso import run_cmd, now_iso, ...).
 from core.sysutils import AGENT_VERSION, now_iso, detect_os, run_cmd, run_powershell
 from core.sysutils import journal_readable as _journal_readable
@@ -49,7 +49,7 @@ def finding(item: str, value, status: str, detail: str = "") -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Coleta — Linux
+# Coleta - Linux
 # ---------------------------------------------------------------------------
 
 # Sistemas so com journald (ex.: Ubuntu minimo) nao tem auth.log/secure: o SSH
@@ -320,7 +320,7 @@ def _linux_auditd() -> list:
 
 
 # ---------------------------------------------------------------------------
-# Coleta — Windows
+# Coleta - Windows
 # ---------------------------------------------------------------------------
 
 def _parse_events(stdout: str, rc: int) -> list:
@@ -368,7 +368,7 @@ def _windows_failed_logins() -> dict:
 
 def _windows_successful_logins() -> dict:
     # Privacidade: apenas a contagem. Linhas completas de logon expoem
-    # usuario, IP e tipo de logon — desnecessario para deteccao de anomalia.
+    # usuario, IP e tipo de logon - desnecessario para deteccao de anomalia.
     ps = (
         "Get-WinEvent -FilterHashtable @{LogName='Security';Id=4624} "
         "-MaxEvents 50 -ErrorAction SilentlyContinue | "

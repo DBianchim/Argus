@@ -1,5 +1,5 @@
 """
-test_sessions.py — GET/DELETE /api/v1/auth/sessions (Minha conta → Sessões ativas).
+test_sessions.py - GET/DELETE /api/v1/auth/sessions (Minha conta -> Sessões ativas).
 """
 
 from app.auth import hash_password
@@ -39,7 +39,7 @@ async def test_lists_only_current_session(client, session_factory):
 async def test_lists_multiple_sessions_flags_current(client, session_factory):
     await _create_user(session_factory)
     token_a = await _login(client)
-    token_b = await _login(client)  # segundo login → segunda sessão
+    token_b = await _login(client)  # segundo login -> segunda sessão
 
     resp = await client.get(
         "/api/v1/auth/sessions", headers={"Authorization": f"Bearer {token_b}"}
@@ -97,7 +97,7 @@ async def test_cannot_revoke_another_users_session(client, session_factory):
     )).json()
     real_maria_id = maria_sessions[0]["id"]
 
-    # David tenta revogar uma sessão da Maria — 404 (não pertence a ele)
+    # David tenta revogar uma sessão da Maria - 404 (não pertence a ele)
     resp = await client.delete(
         f"/api/v1/auth/sessions/{real_maria_id}",
         headers={"Authorization": f"Bearer {david_token}"},

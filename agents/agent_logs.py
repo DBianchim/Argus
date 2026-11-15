@@ -1,5 +1,5 @@
 """
-agent_logs.py — Agente de Integridade e Qualidade de Logs
+agent_logs.py - Agente de Integridade e Qualidade de Logs
 ==========================================================
 Pilar: logs
 Compatível: Linux e Windows
@@ -25,7 +25,7 @@ import time
 from pathlib import Path
 
 from core.config_loader import AgentConfig
-# Utilitarios compartilhados (DRY) — re-exportados abaixo para compatibilidade
+# Utilitarios compartilhados (DRY) - re-exportados abaixo para compatibilidade
 # com os imports dos testes (from agent_logs import run_cmd, now_iso, ...).
 from core.sysutils import AGENT_VERSION, now_iso, detect_os, run_cmd, run_powershell
 from core.sysutils import journal_readable, journald_active
@@ -48,7 +48,7 @@ def finding(item: str, value, status: str, detail: str = "") -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Coleta — Linux
+# Coleta - Linux
 # ---------------------------------------------------------------------------
 
 def _linux_syslog_service() -> list:
@@ -199,7 +199,7 @@ def _linux_last_log_entry() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Coleta — Windows
+# Coleta - Windows
 # ---------------------------------------------------------------------------
 
 def _windows_eventlog_service() -> dict:
@@ -275,7 +275,7 @@ def _windows_log_gaps() -> dict:
 
 
 def _windows_audit_log_cleared() -> dict:
-    """EID 1102 = log de segurança foi limpo manualmente — alto risco."""
+    """EID 1102 = log de segurança foi limpo manualmente - alto risco."""
     ps = (
         "Get-WinEvent -FilterHashtable @{LogName='Security';Id=1102} "
         "-MaxEvents 10 -ErrorAction SilentlyContinue | "

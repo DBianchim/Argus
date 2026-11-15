@@ -1,0 +1,5 @@
+# 2026-10-21T22:11:08-03:00
+Versao dos agentes reportada pela API (agent_version em /servers/{id}/latest): DESKTOP-G6ID80A=1.0.0, WINSRV2016-TEST=1.0.0, UBUNTU26=1.0.0
+Versao no repositorio (tag validacao-cenarios): 33:AGENT_VERSION = '1.1.0'
+Instalado neste host (DESKTOP-G6ID80A): AGENT_VERSION = '1.0.0'
+2026-10-21T22:27:54-03:00 zip central sha256=e01c61ee9e978db2a1f42beae3ae8ad8e46f250c315a83433cff0075b6881934

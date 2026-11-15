@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-validate_payloads.py — Validação estática dos payloads dos agentes Argus
+validate_payloads.py - Validação estática dos payloads dos agentes Argus
 
 Executa collect() de cada agente diretamente e verifica a estrutura,
 tipos e consistência do payload retornado. Não requer rede nem servidor.
@@ -25,7 +25,7 @@ from core.config_loader import (
     OperacionalConfig, BackupConfig, AcessoConfig, LogsConfig,
 )
 
-# ── paleta de saída ───────────────────────────────────────────────────────────
+# paleta de saída
 
 OK   = "[OK]  "
 WARN = "[AVISO]"
@@ -36,7 +36,7 @@ def _ts() -> str:
     return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-# ── config de teste ───────────────────────────────────────────────────────────
+# config de teste
 
 def _make_config() -> AgentConfig:
     """
@@ -84,7 +84,7 @@ def _make_config() -> AgentConfig:
     )
 
 
-# ── verificações genéricas ────────────────────────────────────────────────────
+# verificações genéricas
 
 class _Result:
     def __init__(self):
@@ -155,7 +155,7 @@ def _check_envelope(payload: dict, expected_pilar: str, r: _Result) -> None:
         r.fail("JSON-serializável", str(e))
 
 
-# ── verificações por agente ───────────────────────────────────────────────────
+# verificações por agente
 
 def _validate_operacional(payload: dict, r: _Result) -> None:
     m = payload.get("metrics", {})
@@ -329,7 +329,7 @@ def _validate_findings_agent(payload: dict, pilar: str, r: _Result) -> None:
                " | ".join(f.get("item", "?") for f in errors[:5]))
 
 
-# ── runner principal ──────────────────────────────────────────────────────────
+# runner principal
 
 def _run_agent(name: str, collect_fn, config: AgentConfig) -> tuple[dict | None, str]:
     try:

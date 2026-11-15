@@ -1,0 +1,10 @@
+CT05 - conferencia (feita em 2026-10-22T21:26:52-03:00; NENHUMA acao executada na VM)
+Evento 1102 ainda presente no log Security do WINSRV2016-TEST (payload do pilar logs, 2026-10-23T00:26:43Z):
+  windows_audit_log_cleared_1102, Message "The audit log was cleared." Account Name: Administrator, TimeCreated /Date(1783986828134)/ = 2026-07-13T23:53:48Z
+Alerta ATIVO (GET /servers/4/health): crit / logs / windows_audit_log_cleared_1102 / "Log de segurança foi limpo manualmente (EID 1102)" / "1 ocorrências de limpeza manual do log de seguran
+ça (EID 1102)".
+Historico de notificacoes (limite maximo da API: 200 itens, ate 2026-07-20T23:10Z): UNICO registro citando EID 1102 = id 1373, 2026-10-22T22:47:58Z,
+  status offline -> crit, severity crit, title "WINSRV2016-TEST ficou CRÍTICO", detail "Log de segurança foi limpo manualmente (EID 1102) — 1 ocorrências de limpeza manual do log de segurança (EID 1102)".
+  Ressalva: esse registro e a transicao offline->crit apos a central voltar de uma parada; NAO e a transicao original no instante da limpeza do log (esta nao aparece na janela de 200 notificacoes; a API nao permite paginar para tras).
+Observacao: o servidor ja esta CRITICO por W32Time parado (cada ~mesmo estado desde 2026-10-21). Refazer 'wevtutil cl Security' agora NAO geraria nova notificacao (crit -> crit) e apagaria o log.
+Outro achado (fora do escopo CT05): rajada de ~25 notificacoes 'unknown -> crit' (W32Time parado) para o WINSRV2016-TEST, uma por minuto, entre 2026-10-21T01:35Z e 01:56Z (ids 1300-1327).

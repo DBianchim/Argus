@@ -1,5 +1,5 @@
 """
-agent_config.py — GET /api/v1/agent-config
+agent_config.py - GET /api/v1/agent-config
 
 O agente busca aqui a sua configuração (serviços críticos, caminhos de backup,
 thresholds, intervalo, pilares ligados), autenticado pelo PRÓPRIO token (mesma
@@ -7,7 +7,7 @@ identidade do ingest). Devolve a config + a versão atual; o agente cacheia e s�
 rebaixa quando o `config_version` da resposta do ingest mudar.
 
 Se o servidor ainda não tem config salva, devolve o default do seu os_family
-(determinístico) — a versão permanece a registrada.
+(determinístico) - a versão permanece a registrada.
 """
 
 from fastapi import APIRouter, Depends

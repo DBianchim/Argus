@@ -1,0 +1,10 @@
+# 2026-10-21T21:48:45.6264856-03:00 - certificado HTTPS de argus.local:443
+Subject    : 
+Issuer     : CN=Caddy Local Authority - ECC Intermediate
+NotBefore  : 2026-10-21T20:49:18.0000000-03:00
+NotAfter   : 2026-10-22T08:49:18.0000000-03:00
+Thumbprint : 76A4BC1E382D359E478B5735F21574DE81158D1C
+SAN        : Nome DNS=argus.local
+Validacao SslPolicyErrors (cadeia no repositorio do Windows): None
+Valido agora? True
+Horas restantes ate expirar: 11

@@ -113,7 +113,7 @@ export interface ServerOverview {
   pilar_statuses: Record<string, StatusValue>;
   last_seen_at: string | null;
   agent_version: string | null;
-  // Resumo operacional do último payload — null quando o pilar ainda não foi reportado.
+  // Resumo operacional do último payload - null quando o pilar ainda não foi reportado.
   cpu_pct: number | null;
   mem_pct: number | null;
   disk_pct: number | null;
@@ -183,7 +183,7 @@ export interface NotificationPage {
   items: NotificationOut[];
 }
 
-// Blocos de metrics por pilar (parciais — tolerância a chaves ausentes)
+// Blocos de metrics por pilar (parciais - tolerância a chaves ausentes)
 
 export interface OperacionalMetrics {
   cpu?: { usage_pct?: number; cores?: number; error?: string };

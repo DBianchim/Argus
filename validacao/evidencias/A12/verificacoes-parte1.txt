@@ -1,0 +1,17 @@
+# 2026-10-22T21:56:00-03:00 verificacoes somente-leitura (sem alterar estado)
+== 1. HTTP :80 -> HTTPS
+HTTP/1.1 301 Moved Permanently
+Location: https://argus.local/
+== 2. GET /api/v1/servers sem token e com token invalido
+sem token: 401
+token invalido: 401
+== 3. POST /api/v1/ingest sem token e com token invalido (payload valido)
+sem token: 401
+token invalido: 401
+== 4. Credenciais no banco (somente formato; valores nao exibidos)
+servers.api_token_hash: n=3 todos_hex64=true
+users.password_hash: n=1 prefixos=scrypt$ comprimentos=114
+user_sessions.token_hash: n=52 todos_hex64=true
+== 5. Servidor com origem do cliente vista pela API (ingest recente)
+     32 127.0.0.1
+     62 [IP-PROXY]

@@ -1,5 +1,5 @@
 """
-test_analysis.py — Regras do motor de análise (funções puras, sem banco).
+test_analysis.py - Regras do motor de análise (funções puras, sem banco).
 """
 
 import datetime
@@ -18,7 +18,7 @@ from app.analysis import (
 UTC = datetime.timezone.utc
 
 
-# ── operacional ───────────────────────────────────────────────────────────────
+# operacional
 
 def test_cpu_thresholds():
     ok, _ = evaluate_operacional({"cpu": {"usage_pct": 50.0}})
@@ -65,7 +65,7 @@ def test_missing_keys_do_not_crash():
     assert status == Status.OK
 
 
-# ── backup ────────────────────────────────────────────────────────────────────
+# backup
 
 def test_backup_crit_statuses():
     for s in ("NO_BACKUP_FOUND", "SLA_BREACH", "INTEGRITY_FAIL"):
@@ -137,7 +137,7 @@ def test_backup_old_payload_without_integrity_still_works():
     assert evaluate_backup({"backup": {"status": "WARN"}})[0] == Status.WARN
 
 
-# ── acesso / logs (findings) ──────────────────────────────────────────────────
+# acesso / logs (findings)
 
 def test_findings_warning_and_error_are_warn():
     status, alerts = evaluate_findings("acesso", {"findings": [
@@ -194,7 +194,7 @@ def test_linux_default_services_do_not_include_cron():
     assert services == ["sshd"]
 
 
-# ── servidor ──────────────────────────────────────────────────────────────────
+# servidor
 
 def _now():
     return datetime.datetime.now(UTC)
@@ -244,7 +244,7 @@ def test_server_never_seen_is_unknown():
 
 
 def test_is_offline_handles_naive_datetime():
-    # SQLite (testes) devolve datetimes naive — tratados como UTC
+    # SQLite (testes) devolve datetimes naive - tratados como UTC
     naive_old = datetime.datetime.now(UTC).replace(tzinfo=None) - datetime.timedelta(hours=1)
     assert is_offline(naive_old, offline_after_seconds=600) is True
 

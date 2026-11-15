@@ -1,13 +1,13 @@
 """
-auth.py — Autenticação por token (agentes, usuários e serviço)
+auth.py - Autenticação por token (agentes, usuários e serviço)
 
 Três identidades:
-    - Agentes (ingest): token por servidor → sha256 vs servers.api_token_hash.
-    - Usuários (dashboard): login → sessão opaca (token sha256 em user_sessions).
-    - Serviço: settings.dashboard_token — para integrações/automação.
+    - Agentes (ingest): token por servidor -> sha256 vs servers.api_token_hash.
+    - Usuários (dashboard): login -> sessão opaca (token sha256 em user_sessions).
+    - Serviço: settings.dashboard_token - para integrações/automação.
 
 Os endpoints de consulta aceitam sessão de usuário VÁLIDA ou o token de serviço.
-Token inválido → HTTP 401 (o agente trata 401 como definitivo e descarta).
+Token inválido -> HTTP 401 (o agente trata 401 como definitivo e descarta).
 
 Senhas: hashlib.scrypt (stdlib) com salt aleatório por usuário, formato
 'scrypt$n$r$p$salt_hex$hash_hex'; comparação em tempo constante.
@@ -27,14 +27,14 @@ from .database import get_session
 from .models import Server, User, UserSession
 
 
-# ── tokens (sha256) ───────────────────────────────────────────────────────────
+# tokens (sha256)
 
 def hash_token(token: str) -> str:
     """sha256 hex do token. Usado para tokens de agente e de sessão."""
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-# ── senhas (scrypt, stdlib) ───────────────────────────────────────────────────
+# senhas (scrypt, stdlib)
 
 _SCRYPT_N, _SCRYPT_R, _SCRYPT_P = 2 ** 14, 8, 1
 
@@ -62,7 +62,7 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# helpers
 
 def _extract_bearer(authorization: str | None) -> str:
     if not authorization or not authorization.startswith("Bearer "):
@@ -80,7 +80,7 @@ def _extract_bearer(authorization: str | None) -> str:
 
 
 def _ensure_aware(dt: datetime.datetime) -> datetime.datetime:
-    """SQLite (testes) devolve datetimes naive — assume UTC."""
+    """SQLite (testes) devolve datetimes naive - assume UTC."""
     return dt.replace(tzinfo=datetime.timezone.utc) if dt.tzinfo is None else dt
 
 
@@ -105,7 +105,7 @@ async def _resolve_session(
     return user_session, user
 
 
-# ── dependencies ──────────────────────────────────────────────────────────────
+# dependencies
 
 async def authenticate_agent(
     authorization: str | None = Header(default=None),
@@ -144,7 +144,7 @@ async def require_dashboard(
     )
 
 
-# ── permissões (papéis) ────────────────────────────────────────────────────────
+# permissões (papéis)
 
 # viewer: somente leitura | operator: edita servidores/config | admin: + usuários
 _ROLE_RANK: dict[str, int] = {"viewer": 0, "operator": 1, "admin": 2}
@@ -154,7 +154,7 @@ def require_role(minimum: str):
     """
     Fábrica de dependency: exige sessão de usuário cujo papel seja >= `minimum`
     na hierarquia viewer < operator < admin. O token de serviço (DASHBOARD_TOKEN)
-    sempre passa — é usado por integrações/automação, equivalente a admin.
+    sempre passa - é usado por integrações/automação, equivalente a admin.
     """
 
     async def _dependency(

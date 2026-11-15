@@ -1,5 +1,5 @@
 """
-test_alert_ack.py — Reconhecimento de alertas (Tela de Alertas / Detalhe de Servidor).
+test_alert_ack.py - Reconhecimento de alertas (Tela de Alertas / Detalhe de Servidor).
 """
 
 from app.auth import hash_password

@@ -1,0 +1,4 @@
+# saida do PowerShell em 2026-10-22 ~22:0x -03 (SslStream contra argus.local:443)
+E. TLS negociado por este cliente: Tls13 / cifra
+  protocolo antigo Tls recusado
+  protocolo antigo Tls11 recusado

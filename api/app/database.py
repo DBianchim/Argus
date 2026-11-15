@@ -1,5 +1,5 @@
 """
-database.py — Engine async, sessão e base declarativa do SQLAlchemy 2.0
+database.py - Engine async, sessão e base declarativa do SQLAlchemy 2.0
 
 Fornece:
     - Base: classe declarativa raiz dos modelos ORM

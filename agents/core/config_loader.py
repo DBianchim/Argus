@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-config_loader.py — Leitura e validacao do arquivo de configuracao central
+config_loader.py - Leitura e validacao do arquivo de configuracao central
 
 Responsabilidade:
     Carregar o config.toml, aplicar substituicoes por variaveis de ambiente,
@@ -43,13 +43,13 @@ except ImportError:
         sys.exit(1)
 
 
-# ── caminho padrao do arquivo de configuracao ─────────────────────────────────
+# caminho padrao do arquivo de configuracao
 
 # config.toml fica em agents/ (um nivel acima de core/)
 DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / 'config.toml'
 
 
-# ── dataclasses de configuracao ───────────────────────────────────────────────
+# dataclasses de configuracao
 
 @dataclass
 class GlobalConfig:
@@ -157,28 +157,28 @@ class AgentConfig:
     logs:        LogsConfig
 
 
-# ── substituicao por variaveis de ambiente ────────────────────────────────────
+# substituicao por variaveis de ambiente
 
 def _apply_env_overrides(raw: dict) -> dict:
     """
     Substitui valores do config.toml por variaveis de ambiente quando definidas.
 
     Mapeamento completo:
-        AGENT_API_URL              → global.api_url
-        AGENT_API_TOKEN            → global.api_token
-        AGENT_HOSTNAME             → global.hostname
-        AGENT_CA_CERT              → global.ca_cert
-        AGENT_INTERVAL_SECONDS     → schedule.interval_seconds
-        AGENT_RETRY_MAX_ATTEMPTS   → retry.max_attempts
-        AGENT_RETRY_BACKOFF_SECONDS→ retry.backoff_seconds
-        AGENT_HTTP_TIMEOUT         → retry.http_timeout
-        AGENT_QUEUE_PATH           → retry.queue_path
-        AGENT_QUEUE_MAX_SIZE       → retry.queue_max_size
-        AGENT_CPU_THRESHOLD        → operacional.cpu_threshold
-        AGENT_MEM_THRESHOLD        → operacional.mem_threshold
-        AGENT_DISK_THRESHOLD       → operacional.disk_threshold
-        AGENT_SLA_BACKUP_HOURS     → backup.sla_hours
-        AGENT_MIN_BACKUP_MB        → backup.min_size_mb
+        AGENT_API_URL              -> global.api_url
+        AGENT_API_TOKEN            -> global.api_token
+        AGENT_HOSTNAME             -> global.hostname
+        AGENT_CA_CERT              -> global.ca_cert
+        AGENT_INTERVAL_SECONDS     -> schedule.interval_seconds
+        AGENT_RETRY_MAX_ATTEMPTS   -> retry.max_attempts
+        AGENT_RETRY_BACKOFF_SECONDS-> retry.backoff_seconds
+        AGENT_HTTP_TIMEOUT         -> retry.http_timeout
+        AGENT_QUEUE_PATH           -> retry.queue_path
+        AGENT_QUEUE_MAX_SIZE       -> retry.queue_max_size
+        AGENT_CPU_THRESHOLD        -> operacional.cpu_threshold
+        AGENT_MEM_THRESHOLD        -> operacional.mem_threshold
+        AGENT_DISK_THRESHOLD       -> operacional.disk_threshold
+        AGENT_SLA_BACKUP_HOURS     -> backup.sla_hours
+        AGENT_MIN_BACKUP_MB        -> backup.min_size_mb
     """
     env = os.environ
 
@@ -228,9 +228,9 @@ def _apply_env_overrides(raw: dict) -> dict:
         bk['min_size_mb'] = int(val)
 
     # Marca a origem do token para aviso/validacao posteriores.
-    # 'env'  → veio da variavel de ambiente (recomendado)
-    # 'toml' → veio do arquivo (aviso de seguranca)
-    # 'none' → ausente em ambos (erro de validacao)
+    # 'env'  -> veio da variavel de ambiente (recomendado)
+    # 'toml' -> veio do arquivo (aviso de seguranca)
+    # 'none' -> ausente em ambos (erro de validacao)
     if env.get('AGENT_API_TOKEN'):
         raw['_token_source'] = 'env'
     elif g.get('api_token') and g.get('api_token') != 'INSIRA_SEU_TOKEN_AQUI':
@@ -241,7 +241,7 @@ def _apply_env_overrides(raw: dict) -> dict:
     return raw
 
 
-# ── avisos de seguranca ───────────────────────────────────────────────────────
+# avisos de seguranca
 
 def _warn_token_source(raw: dict) -> None:
     """
@@ -252,7 +252,7 @@ def _warn_token_source(raw: dict) -> None:
       - A env var e mais facil de rotacionar via secrets managers.
       - O TOML tem precedencia silenciosa quando a env var nao esta definida.
 
-    Nao bloqueia a execucao — apenas avisa o operador.
+    Nao bloqueia a execucao - apenas avisa o operador.
     """
     if raw.get('_token_source') == 'toml':
         print(
@@ -268,7 +268,7 @@ def _warn_token_source(raw: dict) -> None:
 def _warn_insecure_http(raw: dict) -> None:
     """
     Emite aviso quando api_url usa HTTP sem criptografia e allow_http nao foi
-    explicitamente habilitado. Nao bloqueia — preserva o fluxo de dev (mock_server).
+    explicitamente habilitado. Nao bloqueia - preserva o fluxo de dev (mock_server).
     """
     g = raw.get('global', {})
     api_url = g.get('api_url', '')
@@ -286,7 +286,7 @@ def _warn_insecure_http(raw: dict) -> None:
         )
 
 
-# ── validacao ─────────────────────────────────────────────────────────────────
+# validacao
 
 class ConfigError(Exception):
     """Excecao lancada quando o config.toml possui valores invalidos ou ausentes."""
@@ -301,7 +301,7 @@ def _validate(raw: dict) -> None:
     """
     errors: list[str] = []
 
-    # [global] — campos obrigatorios
+    # [global] - campos obrigatorios
     g = raw.get('global', {})
     if not g.get('api_url', '').startswith(('http://', 'https://')):
         errors.append('[global] api_url deve comecar com http:// ou https://')
@@ -312,7 +312,7 @@ def _validate(raw: dict) -> None:
             '[global] api_token nao configurado — '
             'defina AGENT_API_TOKEN como variavel de ambiente ou no config.toml'
         )
-    # ca_cert (opcional): se definido, o arquivo PEM precisa existir — falhar
+    # ca_cert (opcional): se definido, o arquivo PEM precisa existir - falhar
     # cedo evita erros obscuros de TLS so na hora do envio.
     ca_cert = g.get('ca_cert')
     if ca_cert and not Path(ca_cert).is_file():
@@ -320,12 +320,12 @@ def _validate(raw: dict) -> None:
             f'[global] ca_cert aponta para um arquivo inexistente: {ca_cert}'
         )
 
-    # [schedule] — valores positivos
+    # [schedule] - valores positivos
     s = raw.get('schedule', {})
     if int(s.get('interval_seconds', 0)) < 10:
         errors.append('[schedule] interval_seconds deve ser >= 10 segundos')
 
-    # [retry] — valores positivos
+    # [retry] - valores positivos
     r = raw.get('retry', {})
     if int(r.get('max_attempts', 0)) < 1:
         errors.append('[retry] max_attempts deve ser >= 1')
@@ -334,7 +334,7 @@ def _validate(raw: dict) -> None:
     if not r.get('queue_path'):
         errors.append('[retry] queue_path nao pode estar vazio')
 
-    # [operacional] — thresholds entre 1 e 100
+    # [operacional] - thresholds entre 1 e 100
     op = raw.get('operacional', {})
     if op.get('enabled', False):
         for field_name in ('cpu_threshold', 'mem_threshold', 'disk_threshold'):
@@ -342,7 +342,7 @@ def _validate(raw: dict) -> None:
             if not 1 <= val <= 100:
                 errors.append(f'[operacional] {field_name} deve estar entre 1 e 100')
 
-    # [backup] — valores positivos
+    # [backup] - valores positivos
     bk = raw.get('backup', {})
     if bk.get('enabled', False):
         if int(bk.get('sla_hours', 0)) < 1:
@@ -357,7 +357,7 @@ def _validate(raw: dict) -> None:
         raise ConfigError(f'Erros encontrados no config.toml:\n{msg}')
 
 
-# ── construcao do objeto tipado ───────────────────────────────────────────────
+# construcao do objeto tipado
 
 def _build_config(raw: dict) -> AgentConfig:
     """
@@ -421,7 +421,7 @@ def _build_config(raw: dict) -> AgentConfig:
     )
 
 
-# ── funcao publica ────────────────────────────────────────────────────────────
+# funcao publica
 
 def load_config(path: Optional[Path] = None) -> AgentConfig:
     """
@@ -467,7 +467,7 @@ def load_config(path: Optional[Path] = None) -> AgentConfig:
     return _build_config(raw)
 
 
-# ── aplicacao da config vinda da central ──────────────────────────────────────
+# aplicacao da config vinda da central
 
 def apply_central_config(config: AgentConfig, central: dict) -> None:
     """
@@ -475,7 +475,7 @@ def apply_central_config(config: AgentConfig, central: dict) -> None:
 
     A central usa LISTAS UNICAS (`critical_services`, `paths`); como o agente roda
     em um SO so, aplicamos a mesma lista aos campos _windows e _linux (ele le o do
-    seu SO). Tolerante a chaves ausentes — nunca levanta.
+    seu SO). Tolerante a chaves ausentes - nunca levanta.
     """
     if not isinstance(central, dict):
         return
@@ -525,7 +525,7 @@ def apply_central_config(config: AgentConfig, central: dict) -> None:
         config.logs.min_channel_size_mb = lg['min_channel_size_mb']
 
 
-# ── execucao direta (validacao rapida) ────────────────────────────────────────
+# execucao direta (validacao rapida)
 
 if __name__ == '__main__':
     config = load_config()

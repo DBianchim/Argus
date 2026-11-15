@@ -61,7 +61,7 @@ Argus/
 ├── dashboard/         # SPA React (src/pages, components, hooks, api)
 ├── docker/            # Caddyfile, entrypoint, backup.sh, restore.sh
 ├── install/           # instaladores (Linux/Windows) e guias
-├── tools/             # validate_payloads, mock_server, load_test
+├── tools/             # validate_payloads, mock_server, load_test, load_test_api
 ├── tests/             # testes dos agentes
 ├── docker-compose.yml
 └── CONTRATO.md

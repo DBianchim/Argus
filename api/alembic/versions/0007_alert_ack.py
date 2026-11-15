@@ -1,4 +1,4 @@
-"""alert_ack — reconhecimento de alertas (Tela de Alertas / Detalhe de Servidor)
+"""alert_ack - reconhecimento de alertas (Tela de Alertas / Detalhe de Servidor)
 
 Revision ID: 0007_alert_ack
 Revises: 0006_user_roles

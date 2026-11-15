@@ -34,7 +34,7 @@ export function Sidebar({
   pilarStatus,
 }: {
   alertCounts: { crit: number; warn: number };
-  // Só o Dashboard mostra o resumo por pilar — demais telas omitem a seção.
+  // Só o Dashboard mostra o resumo por pilar - demais telas omitem a seção.
   pilarStatus?: Record<"operacional" | "backup" | "acesso" | "logs", StatusValue>;
 }) {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ export function Sidebar({
       try {
         localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
       } catch {
-        // localStorage indisponível (ex.: navegação privada) — só em memória
+        // localStorage indisponível (ex.: navegação privada) - só em memória
       }
       return next;
     });

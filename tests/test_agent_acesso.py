@@ -1,5 +1,5 @@
 """
-test_agent_acesso.py — Testes do agente de Segurança de Acesso
+test_agent_acesso.py - Testes do agente de Segurança de Acesso
 ==============================================================
 Execute com:
     python test_agent_acesso.py -v
@@ -15,7 +15,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Aponta para agents/ — um nivel acima de tests/
+# Aponta para agents/ - um nivel acima de tests/
 sys.path.insert(0, str(Path(__file__).parent.parent / "agents"))
 
 from agent_acesso import (
@@ -47,7 +47,7 @@ def _save_report(report: dict, path: str) -> None:
 
 
 # ===========================================================================
-# PASSO 1 — Utilitários
+# PASSO 1 - Utilitários
 # ===========================================================================
 
 class TestUtilities(unittest.TestCase):
@@ -101,7 +101,7 @@ class TestUtilities(unittest.TestCase):
 
 
 # ===========================================================================
-# PASSO 2 — Estrutura do relatório
+# PASSO 2 - Estrutura do relatório
 # ===========================================================================
 
 class TestReportStructure(unittest.TestCase):
@@ -161,7 +161,7 @@ class TestReportStructure(unittest.TestCase):
 
 
 # ===========================================================================
-# PASSO 3 — Coletores Linux
+# PASSO 3 - Coletores Linux
 # ===========================================================================
 
 class TestLinuxAccess(unittest.TestCase):
@@ -426,7 +426,7 @@ class TestJournaldFallback(unittest.TestCase):
 
 
 # ===========================================================================
-# PASSO 4 — Coletores Windows
+# PASSO 4 - Coletores Windows
 # ===========================================================================
 
 class TestWindowsAccess(unittest.TestCase):
@@ -478,7 +478,7 @@ class TestWindowsAccess(unittest.TestCase):
 
 
 # ===========================================================================
-# PASSO 5 — Isolamento e resiliência
+# PASSO 5 - Isolamento e resiliência
 # ===========================================================================
 
 class TestIsolationAndResiliency(unittest.TestCase):
@@ -537,7 +537,7 @@ class TestIsolationAndResiliency(unittest.TestCase):
 
 
 # ===========================================================================
-# PASSO 6 — Persistência
+# PASSO 6 - Persistência
 # ===========================================================================
 
 class TestPersistence(unittest.TestCase):

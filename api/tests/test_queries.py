@@ -1,5 +1,5 @@
 """
-test_queries.py — Consultas do dashboard: latest por pilar e histórico paginado.
+test_queries.py - Consultas do dashboard: latest por pilar e histórico paginado.
 """
 
 from conftest import AGENT_HEADERS, DASHBOARD_HEADERS, make_envelope
@@ -51,7 +51,7 @@ async def test_history_pagination_and_filter(client, server_id):
     page = resp.json()
     assert page["total"] == 5
     assert len(page["items"]) == 2
-    # Ordenado por collected_at desc → o primeiro é o mais recente (04:00)
+    # Ordenado por collected_at desc -> o primeiro é o mais recente (04:00)
     assert page["items"][0]["collected_at"].startswith("2026-06-08T04:00:00")
 
 

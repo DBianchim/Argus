@@ -1,5 +1,5 @@
 """
-test_agent_backup.py — Testes do agente de Backup (deteccao de estagnacao)
+test_agent_backup.py - Testes do agente de Backup (deteccao de estagnacao)
 ===========================================================================
 Execute com:
     python -m unittest tests/test_agent_backup.py -v
@@ -21,7 +21,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-# Aponta para agents/ — um nivel acima de tests/
+# Aponta para agents/ - um nivel acima de tests/
 sys.path.insert(0, str(Path(__file__).parent.parent / "agents"))
 
 import agent_backup

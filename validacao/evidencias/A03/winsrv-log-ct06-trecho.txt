@@ -1,0 +1,135 @@
+718:2026-07-13 22:22:23 UTC | INFO     | scheduler            | Central indisponivel — config aplicada do cache | versao=2
+727:2026-07-13 22:24:44 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=1 arquivos
+734:2026-07-13 22:25:44 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=2 arquivos
+741:2026-07-13 22:27:03 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=3 arquivos
+748:2026-07-13 22:28:32 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=4 arquivos
+751:2026-07-13 22:28:32 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=4 — iniciando reenvio
+759:2026-07-13 22:29:32 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=4
+760:2026-07-13 22:29:32 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+761:2026-07-13 22:29:32 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+787:2026-07-13 22:30:45 UTC | INFO     | scheduler            | Central indisponivel — config aplicada do cache | versao=2
+790:2026-07-13 22:30:45 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=4 — iniciando reenvio
+796:2026-07-13 22:30:58 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=5 arquivos
+805:2026-07-13 22:31:45 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=4
+806:2026-07-13 22:31:45 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+807:2026-07-13 22:31:45 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+810:2026-07-13 22:31:58 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=6 arquivos
+832:2026-07-13 22:36:22 UTC | INFO     | scheduler            | Central indisponivel — config aplicada do cache | versao=2
+835:2026-07-13 22:36:22 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=6 — iniciando reenvio
+843:2026-07-13 22:37:22 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=6
+844:2026-07-13 22:37:22 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+845:2026-07-13 22:37:22 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+852:2026-07-13 22:38:59 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=7 arquivos
+859:2026-07-13 22:40:00 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=8 arquivos
+866:2026-07-13 22:41:16 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=9 arquivos
+892:2026-07-13 22:42:20 UTC | INFO     | scheduler            | Central indisponivel — config aplicada do cache | versao=2
+895:2026-07-13 22:42:20 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=9 — iniciando reenvio
+901:2026-07-13 22:42:34 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=10 arquivos
+904:2026-07-13 22:42:34 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=10 — iniciando reenvio
+914:2026-07-13 22:43:20 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=9
+915:2026-07-13 22:43:20 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+916:2026-07-13 22:43:20 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+919:2026-07-13 22:43:34 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=10
+920:2026-07-13 22:43:34 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+921:2026-07-13 22:43:34 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+932:2026-07-13 22:44:51 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=11 arquivos
+937:2026-07-13 22:45:06 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=12 arquivos
+946:2026-07-13 22:45:51 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=13 arquivos
+949:2026-07-13 22:46:06 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=14 arquivos
+960:2026-07-13 22:47:03 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=15 arquivos
+963:2026-07-13 22:47:19 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=16 arquivos
+974:2026-07-13 22:48:23 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=17 arquivos
+977:2026-07-13 22:48:23 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=17 — iniciando reenvio
+983:2026-07-13 22:48:37 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=18 arquivos
+986:2026-07-13 22:48:37 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=18 — iniciando reenvio
+996:2026-07-13 22:49:23 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=17
+997:2026-07-13 22:49:23 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+998:2026-07-13 22:49:23 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+1001:2026-07-13 22:49:37 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=18
+1002:2026-07-13 22:49:37 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+1003:2026-07-13 22:49:37 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+1014:2026-07-13 22:51:00 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=19 arquivos
+1017:2026-07-13 22:51:09 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=20 arquivos
+1028:2026-07-13 22:52:02 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=21 arquivos
+1031:2026-07-13 22:52:10 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=22 arquivos
+1042:2026-07-13 22:53:49 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=23 arquivos
+1045:2026-07-13 22:53:54 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=24 arquivos
+1056:2026-07-13 22:55:27 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=25 arquivos
+1059:2026-07-13 22:55:28 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=25 — iniciando reenvio
+1063:2026-07-13 22:55:31 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=26 arquivos
+1066:2026-07-13 22:55:31 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=26 — iniciando reenvio
+1078:2026-07-13 22:56:28 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=25
+1079:2026-07-13 22:56:28 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+1080:2026-07-13 22:56:28 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+1083:2026-07-13 22:56:31 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=26
+1084:2026-07-13 22:56:31 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+1085:2026-07-13 22:56:31 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+1096:2026-07-13 22:57:34 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=27 arquivos
+1099:2026-07-13 22:57:37 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=28 arquivos
+1110:2026-07-13 22:58:35 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=29 arquivos
+1113:2026-07-13 22:58:37 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=30 arquivos
+1124:2026-07-13 22:59:38 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=31 arquivos
+1127:2026-07-13 22:59:41 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=32 arquivos
+1138:2026-07-13 23:00:48 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=33 arquivos
+1141:2026-07-13 23:00:48 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=33 — iniciando reenvio
+1145:2026-07-13 23:00:49 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=34 arquivos
+1148:2026-07-13 23:00:49 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=34 — iniciando reenvio
+1160:2026-07-13 23:01:48 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=33
+1161:2026-07-13 23:01:48 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+1162:2026-07-13 23:01:48 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+1165:2026-07-13 23:01:49 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=34
+1166:2026-07-13 23:01:49 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+1167:2026-07-13 23:01:49 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+1178:2026-07-13 23:02:54 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=35 arquivos
+1181:2026-07-13 23:02:55 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=36 arquivos
+1192:2026-07-13 23:03:54 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=37 arquivos
+1195:2026-07-13 23:03:55 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=38 arquivos
+1206:2026-07-13 23:04:57 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=39 arquivos
+1209:2026-07-13 23:04:58 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=40 arquivos
+1220:2026-07-13 23:06:00 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=41 arquivos
+1223:2026-07-13 23:06:00 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=41 — iniciando reenvio
+1227:2026-07-13 23:06:01 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=42 arquivos
+1230:2026-07-13 23:06:01 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=42 — iniciando reenvio
+1357:2026-07-13 23:06:54 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=39 | falhas=0
+1358:2026-07-13 23:06:54 UTC | INFO     | scheduler            | Flush concluido | enviados=39 | falhas=0
+1360:2026-07-13 23:06:54 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=38 | falhas=0
+1361:2026-07-13 23:06:54 UTC | INFO     | scheduler            | Flush concluido | enviados=38 | falhas=0
+1902:2026-07-13 23:24:01 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=1 arquivos
+1903:2026-07-13 23:24:01 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=1 arquivos
+1905:2026-07-13 23:24:01 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=1 arquivos
+1923:2026-07-13 23:24:37 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=2 arquivos
+1925:2026-07-13 23:24:37 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=2 arquivos
+1926:2026-07-13 23:24:37 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=2 arquivos
+1941:2026-07-13 23:25:21 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=3 arquivos
+1944:2026-07-13 23:25:22 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=3 arquivos
+1947:2026-07-13 23:25:22 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=acesso | fila_pendente=4 arquivos
+1962:2026-07-13 23:25:59 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=5 arquivos
+1965:2026-07-13 23:25:59 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=5 — iniciando reenvio
+1973:2026-07-13 23:26:02 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=6 arquivos
+1975:2026-07-13 23:26:02 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=logs | fila_pendente=6 arquivos
+1979:2026-07-13 23:26:02 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=6 — iniciando reenvio
+1980:2026-07-13 23:26:02 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=6 — iniciando reenvio
+1995:2026-07-13 23:26:36 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=5
+1996:2026-07-13 23:26:36 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+1997:2026-07-13 23:26:36 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+2000:2026-07-13 23:26:39 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=6
+2001:2026-07-13 23:26:39 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+2002:2026-07-13 23:26:39 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+2005:2026-07-13 23:26:39 UTC | WARNING  | core.queue_local     | Reenvio da fila interrompido — sistema central ainda indisponivel | enviados=0 | restantes=6
+2006:2026-07-13 23:26:39 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=0 | falhas=1
+2007:2026-07-13 23:26:39 UTC | INFO     | scheduler            | Flush concluido | enviados=0 | falhas=1
+2022:2026-07-13 23:27:21 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=7 arquivos
+2028:2026-07-13 23:27:22 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=8 arquivos
+2030:2026-07-13 23:27:22 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=operacional | fila_pendente=8 arquivos
+2043:2026-07-13 23:27:58 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=9 arquivos
+2048:2026-07-13 23:27:59 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=10 arquivos
+2049:2026-07-13 23:27:59 UTC | WARNING  | scheduler            | Payload salvo na fila | pilar=backup | fila_pendente=10 arquivos
+2072:2026-07-13 23:28:41 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=10 — iniciando reenvio
+2080:2026-07-13 23:28:41 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=8 — iniciando reenvio
+2089:2026-07-13 23:28:41 UTC | INFO     | scheduler            | Fila local com pendencias | arquivos=7 — iniciando reenvio
+2121:2026-07-13 23:28:42 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=10 | falhas=0
+2122:2026-07-13 23:28:42 UTC | INFO     | scheduler            | Flush concluido | enviados=10 | falhas=0
+2125:2026-07-13 23:28:42 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=7 | falhas=0
+2126:2026-07-13 23:28:42 UTC | INFO     | scheduler            | Flush concluido | enviados=7 | falhas=0
+2129:2026-07-13 23:28:42 UTC | INFO     | core.queue_local     | Reenvio da fila concluido | enviados=7 | falhas=0
+2130:2026-07-13 23:28:42 UTC | INFO     | scheduler            | Flush concluido | enviados=7 | falhas=0

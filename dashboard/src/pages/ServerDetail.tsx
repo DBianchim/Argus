@@ -71,7 +71,7 @@ function statusBorder(status: StatusValue): string {
   return "border-[#272c3a]";
 }
 
-// ── Seções por pilar ─────────────────────────────────────────────────────────
+// Seções por pilar
 
 function ChartCard({
   title,
@@ -330,7 +330,7 @@ function BackupTab({ serverId, metrics }: { serverId: number; metrics: BackupMet
   );
 }
 
-// ── página ────────────────────────────────────────────────────────────────────
+// página
 
 export function ServerDetail() {
   const { id } = useParams();
@@ -520,7 +520,7 @@ export function ServerDetail() {
               </span>
             </div>
 
-            {/* Só os dots na barra — texto flutuante por evento colidia quando vários
+            {/* Só os dots na barra - texto flutuante por evento colidia quando vários
                 eventos caem perto no tempo. Detalhe legível vai na lista abaixo. */}
             <div className="relative mx-1.5 h-3">
               <div className="absolute left-0 right-0 top-1 h-1 rounded bg-[#232836]" />

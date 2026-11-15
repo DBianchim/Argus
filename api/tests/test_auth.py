@@ -1,5 +1,5 @@
 """
-test_auth.py — Autenticação de agente (revogação) e de dashboard.
+test_auth.py - Autenticação de agente (revogação) e de dashboard.
 """
 
 from sqlalchemy import update
@@ -9,7 +9,7 @@ from conftest import AGENT_HEADERS, DASHBOARD_HEADERS, make_envelope
 
 
 async def test_revoked_server_gets_401(client, server_id, session_factory):
-    # Revoga o servidor → ingest passa a 401
+    # Revoga o servidor -> ingest passa a 401
     async with session_factory() as session:
         await session.execute(
             update(Server).where(Server.id == server_id).values(is_active=False)

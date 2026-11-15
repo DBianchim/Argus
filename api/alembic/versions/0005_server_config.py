@@ -16,7 +16,7 @@ down_revision: Union[str, None] = "0004_notifications"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-# JSONB no Postgres, JSON no SQLite (testes) — mesmo padrão de models.py
+# JSONB no Postgres, JSON no SQLite (testes) - mesmo padrão de models.py
 _JSON = sa.JSON().with_variant(JSONB, "postgresql")
 
 

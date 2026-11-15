@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-central_config.py — Sincronizacao da configuracao gerenciada pela central.
+central_config.py - Sincronizacao da configuracao gerenciada pela central.
 
 A central e dona da config de cada servidor (servicos criticos, caminhos de
 backup, intervalo, pilares ligados, thresholds). O agente:
@@ -37,7 +37,7 @@ def fetch_config(config: AgentConfig) -> tuple[dict | None, int | None]:
 
     Returns:
         (config_dict, version) em sucesso; (None, None) em qualquer falha
-        (central fora, 401, corpo invalido) — nunca levanta.
+        (central fora, 401, corpo invalido) - nunca levanta.
     """
     url = f'{config.global_.api_url}/api/v1/agent-config'
     headers = {

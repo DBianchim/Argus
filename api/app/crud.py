@@ -1,5 +1,5 @@
 """
-crud.py — Operações de banco (camada de acesso a dados)
+crud.py - Operações de banco (camada de acesso a dados)
 
 Mantém o SQL/ORM isolado dos routers: ingestão, registro de servidores e as
 consultas do dashboard (lista, último estado por pilar, histórico paginado).
@@ -22,7 +22,7 @@ def _utcnow() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
 
 
-# ── ingestão ──────────────────────────────────────────────────────────────────
+# ingestão
 
 async def insert_metric(
     session: AsyncSession,
@@ -47,7 +47,7 @@ async def insert_metric(
     return metric
 
 
-# ── servidores ────────────────────────────────────────────────────────────────
+# servidores
 
 async def list_servers(session: AsyncSession) -> list[Server]:
     result = await session.execute(select(Server).order_by(Server.hostname))
@@ -61,7 +61,7 @@ async def get_server(session: AsyncSession, server_id: int) -> Server | None:
 async def create_server(
     session: AsyncSession, *, hostname: str, os_family: str, display_name: str | None
 ) -> tuple[Server, str]:
-    """Registra um servidor e devolve (server, token em claro — só existe agora)."""
+    """Registra um servidor e devolve (server, token em claro - só existe agora)."""
     token = secrets.token_urlsafe(32)
     server = Server(
         hostname=hostname,
@@ -117,13 +117,13 @@ async def put_server_config(
     return server
 
 
-# ── consultas de métricas ─────────────────────────────────────────────────────
+# consultas de métricas
 
 async def latest_per_pilar(session: AsyncSession, server_id: int) -> list[Metric]:
     """
     Último payload de cada pilar para um servidor (estado atual).
 
-    Usa window function (row_number) — portável entre PostgreSQL e SQLite.
+    Usa window function (row_number) - portável entre PostgreSQL e SQLite.
     """
     rn = (
         func.row_number()
@@ -151,7 +151,7 @@ async def latest_per_pilar(session: AsyncSession, server_id: int) -> list[Metric
 
 async def latest_per_pilar_all(session: AsyncSession) -> list[Metric]:
     """
-    Último payload de cada (servidor, pilar) — frota inteira em 1 query.
+    Último payload de cada (servidor, pilar) - frota inteira em 1 query.
     Alimenta o GET /overview sem N+1.
     """
     rn = (
@@ -173,7 +173,7 @@ async def recent_operacional_history(
     session: AsyncSession, *, limit_per_server: int = 16
 ) -> list[Metric]:
     """
-    Últimas N amostras do pilar operacional de cada servidor — frota inteira em
+    Últimas N amostras do pilar operacional de cada servidor - frota inteira em
     1 query. Alimenta o sparkline de CPU do GET /overview sem N+1.
     """
     rn = (
@@ -197,10 +197,10 @@ async def recent_operacional_history(
     return list(result.scalars().all())
 
 
-# ── reconhecimento de alertas ──────────────────────────────────────────────────
+# reconhecimento de alertas
 
 async def acks_for_servers(session: AsyncSession, server_ids: list[int]) -> list[AlertAck]:
-    """Todos os reconhecimentos da frota visível — 1 query, sem N+1 no overview."""
+    """Todos os reconhecimentos da frota visível - 1 query, sem N+1 no overview."""
     if not server_ids:
         return []
     result = await session.execute(
@@ -212,7 +212,7 @@ async def acks_for_servers(session: AsyncSession, server_ids: list[int]) -> list
 async def upsert_ack(
     session: AsyncSession, *, server_id: int, pilar: str, item: str, acked_by: str
 ) -> AlertAck:
-    """Reconhece (server_id, pilar, item) — substitui um reconhecimento anterior."""
+    """Reconhece (server_id, pilar, item) - substitui um reconhecimento anterior."""
     result = await session.execute(
         select(AlertAck).where(
             AlertAck.server_id == server_id, AlertAck.pilar == pilar, AlertAck.item == item,
@@ -233,7 +233,7 @@ async def upsert_ack(
 
 async def latest_bad_notification(session: AsyncSession, server_ids: list[int]) -> list[NotificationLog]:
     """
-    Última transição para um estado não-OK de cada servidor — aproximação de
+    Última transição para um estado não-OK de cada servidor - aproximação de
     "desde quando" o alerta ativo está em curso (ver notifications.py: o log
     registra só o alerta de topo por transição, não por item individual).
     """
@@ -260,7 +260,7 @@ async def latest_bad_notification(session: AsyncSession, server_ids: list[int]) 
     return list(result.scalars().all())
 
 
-# ── usuarios e sessoes ────────────────────────────────────────────────────────
+# usuarios e sessoes
 
 async def get_user_by_username(session: AsyncSession, username: str) -> User | None:
     result = await session.execute(select(User).where(User.username == username))
@@ -325,7 +325,7 @@ async def revoke_session_by_id(session: AsyncSession, user_id: int, session_id: 
     return True
 
 
-# ── gerenciamento de usuarios (admin) ─────────────────────────────────────────
+# gerenciamento de usuarios (admin)
 
 async def list_users(session: AsyncSession) -> list[User]:
     result = await session.execute(select(User).order_by(User.username))
@@ -337,7 +337,7 @@ async def get_user(session: AsyncSession, user_id: int) -> User | None:
 
 
 async def count_active_admins(session: AsyncSession, *, exclude_id: int | None = None) -> int:
-    """Quantos admins ativos existem (excluindo opcionalmente um id) — evita lockout."""
+    """Quantos admins ativos existem (excluindo opcionalmente um id) - evita lockout."""
     stmt = select(func.count()).select_from(User).where(
         User.role == "admin", User.is_active.is_(True)
     )
@@ -382,7 +382,7 @@ async def delete_user(session: AsyncSession, user: User) -> None:
 
 
 async def update_own_display_name(session: AsyncSession, user: User, display_name: str | None) -> User:
-    """Autoatendimento (Minha conta) — só o próprio nome de exibição, nunca papel/ativo."""
+    """Autoatendimento (Minha conta) - só o próprio nome de exibição, nunca papel/ativo."""
     user.display_name = display_name or None
     await session.commit()
     await session.refresh(user)
@@ -400,7 +400,7 @@ async def set_password(session: AsyncSession, user: User, new_password: str) -> 
     await session.commit()
 
 
-# ── notificacoes ──────────────────────────────────────────────────────────────
+# notificacoes
 
 async def list_notifications(
     session: AsyncSession, *, limit: int = 50, since_id: int | None = None

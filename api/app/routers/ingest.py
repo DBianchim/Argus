@@ -1,13 +1,13 @@
 """
-ingest.py — POST /api/v1/ingest
+ingest.py - POST /api/v1/ingest
 
 Recebe o envelope de um agente autenticado e persiste.
 
 Contrato com o agente (agents/core/sender.py):
-    200 → aceito (sucesso). DEVE ser exatamente 200.
-    401 → token inválido (auth dependency). Agente descarta.
-    422 → corpo inválido (validação Pydantic). Agente descarta.
-    503 → erro transitório ao persistir. Agente retenta e enfileira.
+    200 -> aceito (sucesso). DEVE ser exatamente 200.
+    401 -> token inválido (auth dependency). Agente descarta.
+    422 -> corpo inválido (validação Pydantic). Agente descarta.
+    503 -> erro transitório ao persistir. Agente retenta e enfileira.
 """
 
 import logging
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["ingest"])
 
 # Circuit breaker, não throttle: precisa folgar acima do reenvio de fila
-# inteiro (até 1000 payloads — ver rate_limit.py). Protege contra token
+# inteiro (até 1000 payloads - ver rate_limit.py). Protege contra token
 # comprometido/agente em loop, não o uso normal, nem a recuperação de fila.
 _INGEST_LIMIT = "1500/minute"
 
@@ -57,7 +57,7 @@ async def ingest(
         )
 
     # Instrumentação: cronometra a persistência (parte crítica do custo de
-    # ingestão) e o handler inteiro. perf_counter é monotônico — imune a ajustes
+    # ingestão) e o handler inteiro. perf_counter é monotônico - imune a ajustes
     # de relógio. Registra o evento mesmo em falha, para a taxa de erro ser real.
     handler_start = time.perf_counter()
     try:
@@ -74,7 +74,7 @@ async def ingest(
         )
         logger.error("Falha ao persistir métrica | pilar=%s | erro=%s",
                      envelope.pilar, type(exc).__name__)
-        # 503 → transitório: o agente vai retentar e, no limite, enfileirar.
+        # 503 -> transitório: o agente vai retentar e, no limite, enfileirar.
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Erro ao persistir o payload — tente novamente",
@@ -118,7 +118,7 @@ async def ingest(
 async def ingest_stats():
     """Contadores e latências de ingestão desde o último boot da central.
 
-    Efêmero (zera ao reiniciar). Protegido pelo token do dashboard — não é
+    Efêmero (zera ao reiniciar). Protegido pelo token do dashboard - não é
     dado de agente. Alimenta a evidência de desempenho/carga.
     """
     return ingest_metrics.snapshot()

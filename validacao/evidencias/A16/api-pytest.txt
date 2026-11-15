@@ -1,0 +1,14 @@
+inicio 2026-10-21T21:48:52-03:00
+........................................................................ [ 63%]
+.........................................                                [100%]
+============================== warnings summary ===============================
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+  D:\Desenvolvimento\Argus\api\.venv\Lib\site-packages\slowapi\extension.py:720: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+113 passed, 4 warnings in 16.04s
+fim 2026-10-21T21:49:24-03:00

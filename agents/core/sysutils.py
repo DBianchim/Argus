@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sysutils.py — Utilitarios compartilhados pelos agentes
+sysutils.py - Utilitarios compartilhados pelos agentes
 
 Reune funcoes que antes eram reimplementadas em cada agente (now_iso,
 detect_os, execucao de subprocess e construcao de findings), eliminando
@@ -11,7 +11,7 @@ dependem apenas de core/ (e nunca uns dos outros), a independencia entre
 agentes e preservada.
 
 Seguranca:
-    - run_cmd usa shell=False obrigatoriamente — ver docstring da funcao.
+    - run_cmd usa shell=False obrigatoriamente - ver docstring da funcao.
 
 Autores: Equipe de Infraestrutura
 """
@@ -27,7 +27,7 @@ import tempfile
 logger = logging.getLogger(__name__)
 
 
-# ── versao do agente ──────────────────────────────────────────────────────────
+# versao do agente
 
 # Versao unica do pacote de agentes, enviada em cada payload (agent_version).
 # Incremente a cada release que altere a coleta ou o contrato (ver CONTRATO.md
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 AGENT_VERSION = '1.3.0'
 
 
-# ── arquivos de estado ────────────────────────────────────────────────────────
+# arquivos de estado
 
 def state_file_path(queue_path: str, filename: str) -> str:
     """
@@ -43,7 +43,7 @@ def state_file_path(queue_path: str, filename: str) -> str:
 
     O estado persistente do agente (cache de config, ultimo backup observado)
     vive fora dos diretorios monitorados, no mesmo diretorio pai de
-    config.retry.queue_path. Nao cria nada em disco — apenas calcula o caminho.
+    config.retry.queue_path. Nao cria nada em disco - apenas calcula o caminho.
 
     Args:
         queue_path: Valor de config.retry.queue_path.
@@ -58,7 +58,7 @@ def state_dir_error(queue_path: str) -> str | None:
     Verifica se a pasta de estado do agente aceita gravacao.
 
     Cria um arquivo temporario na pasta de state_file_path() e o remove. Serve
-    para avisar no inicio (runner) quando o estado nao sera persistido — por
+    para avisar no inicio (runner) quando o estado nao sera persistido - por
     exemplo, em instalacao Linux antiga em que a pasta e root:root ou fica fora
     do ReadWritePaths da unit systemd.
 
@@ -76,7 +76,7 @@ def state_dir_error(queue_path: str) -> str | None:
     return None
 
 
-# ── tempo ─────────────────────────────────────────────────────────────────────
+# tempo
 
 def now_iso() -> str:
     """
@@ -89,14 +89,14 @@ def now_iso() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
-# ── plataforma ────────────────────────────────────────────────────────────────
+# plataforma
 
 def detect_os() -> str:
     """Retorna 'windows' ou 'linux' com base no sistema em execucao."""
     return 'windows' if platform.system().lower() == 'windows' else 'linux'
 
 
-# ── journald ──────────────────────────────────────────────────────────────────
+# journald
 
 # Grupos que dao leitura ao journal do sistema.
 _JOURNAL_GROUPS = {'systemd-journal', 'adm', 'wheel'}
@@ -125,7 +125,7 @@ def journal_readable() -> bool:
     return False
 
 
-# ── execucao de comandos ──────────────────────────────────────────────────────
+# execucao de comandos
 
 def run_cmd(args: list[str], timeout: int = 15) -> tuple[str, str, int]:
     """
@@ -148,7 +148,7 @@ def run_cmd(args: list[str], timeout: int = 15) -> tuple[str, str, int]:
     try:
         result = subprocess.run(
             args,
-            shell=False,            # Nunca alterar para True — ver docstring
+            shell=False,            # Nunca alterar para True - ver docstring
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -180,7 +180,7 @@ def run_powershell(script: str, timeout: int = 30) -> tuple[str, str, int]:
     """
     Executa um script PowerShell de forma segura e padronizada.
 
-    Usa -NoProfile (nao carrega o perfil do usuario — mais rapido e previsivel)
+    Usa -NoProfile (nao carrega o perfil do usuario - mais rapido e previsivel)
     e -NonInteractive (nunca aguarda input). O script vai como argumento unico,
     sem interpretacao adicional pelo cmd.exe.
 
@@ -193,7 +193,7 @@ def run_powershell(script: str, timeout: int = 30) -> tuple[str, str, int]:
     )
 
 
-# ── findings ──────────────────────────────────────────────────────────────────
+# findings
 
 def finding(pilar: str, item: str, value, status: str, detail: str = '') -> dict:
     """

@@ -1,19 +1,19 @@
 # =============================================================================
-# Caddyfile — reverse proxy + TLS da CENTRAL do Argus
+# Caddyfile - reverse proxy + TLS da CENTRAL do Argus
 #
 # Termina HTTPS e encaminha TUDO (/api, /health, /docs e o SPA) para a API.
 # A API não expõe porta no host; só o Caddy é acessível de fora.
 #
 # Além disso, serve os artefatos de instalação dos agentes em /install/*:
-#   • /install/ca.crt          → a CA do Caddy (servida pelo próprio Caddy)
-#   • /install/install.ps1|sh  → scripts de instalação (proxy para a API)
-#   • /install/argus-agent.zip → código do agente        (proxy para a API)
+#   • /install/ca.crt          -> a CA do Caddy (servida pelo próprio Caddy)
+#   • /install/install.ps1|sh  -> scripts de instalação (proxy para a API)
+#   • /install/argus-agent.zip -> código do agente        (proxy para a API)
 # Esses são acessíveis por HTTP (porta 80) para o "bootstrap": o servidor-alvo
 # precisa baixar a CA ANTES de confiar no HTTPS. Não há segredo nesses arquivos.
 # =============================================================================
 
 # Opções globais. `auto_https disable_redirects`: o Caddy continua gerando o
-# certificado interno, mas NÃO cria o redirect automático 80→443 — assim o nosso
+# certificado interno, mas NÃO cria o redirect automático 80->443 - assim o nosso
 # site `:80` controla a porta 80 por completo (servir /install/* e redirecionar o
 # resto). Sem isto, o redirect automático do host configurado capturaria /install/*.
 {
@@ -29,7 +29,7 @@
 	}
 }
 
-# ===== Porta 80 (HTTP) — só para o bootstrap =================================
+# ===== Porta 80 (HTTP) - só para o bootstrap =================================
 # Serve /install/* sem exigir HTTPS (para baixar a CA e o código do agente).
 # Todo o resto é redirecionado para HTTPS.
 :80 {
@@ -42,13 +42,13 @@
 	}
 }
 
-# ===== MODO ON-PREMISE (PADRÃO) — HTTPS ======================================
+# ===== MODO ON-PREMISE (PADRÃO) - HTTPS ======================================
 # O endereço do site vem da variável ARGUS_HOST (default: localhost). Defina
 # ARGUS_HOST no .env com o nome ou IP usado para acessar a central na rede da
 # empresa (ex.: argus.empresa.local ou 10.0.0.20).
 #
 # `tls internal` faz o Caddy gerar uma CA local e emitir o certificado da
-# central para esse hostname — sem domínio público, sem comprar certificado.
+# central para esse hostname - sem domínio público, sem comprar certificado.
 # Instale a CA raiz do Caddy nas máquinas que vão acessar (ver install/DEPLOY.md)
 # para o navegador tratar a central como contexto seguro e oferecer instalar a PWA.
 {$ARGUS_HOST:localhost} {

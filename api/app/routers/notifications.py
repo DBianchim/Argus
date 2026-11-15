@@ -1,5 +1,5 @@
 """
-notifications.py (router) — Histórico de alertas para o dashboard
+notifications.py (router) - Histórico de alertas para o dashboard
 
     GET /api/v1/notifications?limit=50&since_id=N
 

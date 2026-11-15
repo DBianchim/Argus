@@ -1,4 +1,4 @@
-"""initial schema — servers e metrics
+"""initial schema - servers e metrics
 
 Revision ID: 0001_initial
 Revises:

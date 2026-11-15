@@ -20,7 +20,7 @@ function fireOsNotification(notif: NotificationOut) {
       tag: `argus-${notif.id}`,
     });
   } catch {
-    // Notification API pode falhar em alguns contextos — o toast in-app cobre
+    // Notification API pode falhar em alguns contextos - o toast in-app cobre
   }
 }
 

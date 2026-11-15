@@ -1,10 +1,10 @@
 """
-test_ingest.py — Contrato de ingestão (200 / 401 / 422) e persistência.
+test_ingest.py - Contrato de ingestão (200 / 401 / 422) e persistência.
 
 Cobre os códigos que o agente interpreta:
-    200 → sucesso (exatamente 200)
-    401 → token ausente/ inválido (agente descarta)
-    422 → corpo inválido (agente descarta)
+    200 -> sucesso (exatamente 200)
+    401 -> token ausente/ inválido (agente descarta)
+    422 -> corpo inválido (agente descarta)
 """
 
 from conftest import AGENT_HEADERS, DASHBOARD_HEADERS, make_envelope
@@ -71,7 +71,7 @@ async def test_ingest_agent_version_persisted(client, server_id):
 
 
 async def test_ingest_without_agent_version_still_works(client, server_id):
-    # Compatibilidade aditiva (CONTRATO.md): agentes antigos não enviam o campo —
+    # Compatibilidade aditiva (CONTRATO.md): agentes antigos não enviam o campo -
     # a API deve aceitar (200) e armazenar NULL.
     envelope = make_envelope()
     assert "agent_version" not in envelope

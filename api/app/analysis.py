@@ -1,12 +1,12 @@
 """
-analysis.py — Motor de análise da central
+analysis.py - Motor de análise da central
 
 Transforma métricas brutas dos agentes em julgamento: status por pilar,
 status do servidor e alertas. É a materialização do princípio
-"o agente coleta, a central analisa" — nenhuma regra de análise vive
+"o agente coleta, a central analisa" - nenhuma regra de análise vive
 nos agentes nem no frontend.
 
-Funções puras (recebem dicts, retornam dataclasses) — testáveis sem banco.
+Funções puras (recebem dicts, retornam dataclasses) - testáveis sem banco.
 Conformidade com CONTRATO.md: toda leitura usa .get() e tolera chaves
 ausentes; payloads de agentes antigos nunca quebram o motor.
 """
@@ -18,14 +18,14 @@ from enum import Enum
 from .config_defaults import op_thresholds
 
 
-# ── status ────────────────────────────────────────────────────────────────────
+# status
 
 class Status(str, Enum):
     OK      = "ok"
-    UNKNOWN = "unknown"   # pilar sem dados — pior que OK, melhor que WARN
+    UNKNOWN = "unknown"   # pilar sem dados - pior que OK, melhor que WARN
     WARN    = "warn"
     CRIT    = "crit"
-    OFFLINE = "offline"   # servidor sem contato — calculado fora dos pilares
+    OFFLINE = "offline"   # servidor sem contato - calculado fora dos pilares
 
 
 _SEVERITY = {Status.OK: 0, Status.UNKNOWN: 1, Status.WARN: 2, Status.CRIT: 3}
@@ -40,7 +40,7 @@ def worst(statuses: list[Status]) -> Status:
     return max(statuses, key=lambda s: _SEVERITY[s])
 
 
-# ── alertas ───────────────────────────────────────────────────────────────────
+# alertas
 
 @dataclass
 class Alert:
@@ -58,9 +58,9 @@ class ServerHealth:
     alerts:         list[Alert] = field(default_factory=list)
 
 
-# ── limiares ────────────────────────────────────────────────────────────────
+# limiares
 # Os limiares vêm da config POR SERVIDOR (gerenciada na central). Os valores
-# abaixo são apenas o fallback quando a config está ausente/parcial — a fonte da
+# abaixo são apenas o fallback quando a config está ausente/parcial - a fonte da
 # verdade é config_defaults.op_thresholds(server.config).
 
 CPU_WARN,  CPU_CRIT  = 75.0, 90.0
@@ -81,7 +81,7 @@ def _pct_status(value, warn: float, crit: float) -> Status:
     return Status.OK
 
 
-# ── regras por pilar ──────────────────────────────────────────────────────────
+# regras por pilar
 
 def evaluate_operacional(metrics: dict, config: dict | None = None) -> tuple[Status, list[Alert]]:
     statuses: list[Status] = [Status.OK]
@@ -169,7 +169,7 @@ def evaluate_backup(metrics: dict) -> tuple[Status, list[Alert]]:
     if status_str == "OK":
         return Status.OK, []
     # Status que esta versão da central não conhece (agente mais novo): não
-    # declara saudável sem saber — UNKNOWN, sem alerta (regra aditiva, CONTRATO §3).
+    # declara saudável sem saber - UNKNOWN, sem alerta (regra aditiva, CONTRATO §3).
     return Status.UNKNOWN, []
 
 
@@ -193,7 +193,7 @@ def evaluate_findings(pilar: str, metrics: dict, config: dict | None = None) -> 
         if overrides.get(item) in ("ignore", "info"):
             continue
 
-        # Limpeza manual do log de segurança (EID 1102) é incidente crítico —
+        # Limpeza manual do log de segurança (EID 1102) é incidente crítico -
         # eleva acima do tratamento padrão de finding 'error'.
         if "audit_log_cleared" in item and f_status == "error":
             statuses.append(Status.CRIT)
@@ -225,10 +225,10 @@ def evaluate_pilar(pilar: str, metrics: dict, config: dict | None = None) -> tup
     return Status.UNKNOWN, []
 
 
-# ── servidor ──────────────────────────────────────────────────────────────────
+# servidor
 
 def _ensure_aware(dt: datetime.datetime | None) -> datetime.datetime | None:
-    """SQLite (testes) devolve datetimes naive — assume UTC."""
+    """SQLite (testes) devolve datetimes naive - assume UTC."""
     if dt is not None and dt.tzinfo is None:
         return dt.replace(tzinfo=datetime.timezone.utc)
     return dt
@@ -241,7 +241,7 @@ def is_offline(
 ) -> bool:
     last_seen_at = _ensure_aware(last_seen_at)
     if last_seen_at is None:
-        return False   # nunca reportou → UNKNOWN, não OFFLINE
+        return False   # nunca reportou -> UNKNOWN, não OFFLINE
     now = now or datetime.datetime.now(datetime.timezone.utc)
     return (now - last_seen_at).total_seconds() > offline_after_seconds
 
@@ -260,7 +260,7 @@ def evaluate_server(
         pilar_metrics: {pilar: bloco metrics do último payload}. Pilares
                        ausentes recebem UNKNOWN.
         last_seen_at:  último contato do servidor (servers.last_seen_at).
-        offline_after_seconds: sem contato além disso → OFFLINE.
+        offline_after_seconds: sem contato além disso -> OFFLINE.
 
     Returns:
         ServerHealth com status do servidor, status por pilar e alertas.
@@ -270,7 +270,7 @@ def evaluate_server(
 
     for pilar in PILARES:
         # Pilar desligado na config (ex.: servidor sem backup a monitorar) ignora
-        # qualquer payload — inclusive um payload antigo (CRIT) de antes do pilar
+        # qualquer payload - inclusive um payload antigo (CRIT) de antes do pilar
         # ter sido desligado, que senão ficaria "preso" como último estado para sempre.
         pilar_cfg = (config or {}).get(pilar) or {}
         if pilar_cfg.get("enabled") is False:

@@ -1,5 +1,5 @@
 """
-test_agent_operacional_services.py — Servicos criticos no Linux (ssh x sshd)
+test_agent_operacional_services.py - Servicos criticos no Linux (ssh x sshd)
 =============================================================================
 Execute com:
     python -m unittest tests/test_agent_operacional_services.py -v
@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-# Aponta para agents/ — um nivel acima de tests/
+# Aponta para agents/ - um nivel acima de tests/
 sys.path.insert(0, str(Path(__file__).parent.parent / "agents"))
 
 from agent_operacional import linux_services

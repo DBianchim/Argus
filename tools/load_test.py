@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-load_test.py — Simulador de frota para carga real contra a central Argus
+load_test.py - Simulador de frota para carga real contra a central Argus
 
 Registra N servidores efêmeros no banco (como `manage.py create-server`, em lote),
 dispara agentes virtuais que enviam payloads reais via HTTP para
 POST /api/v1/ingest (o mesmo endpoint que os agentes de verdade usam), mede a
 carga do lado do cliente e confere com o GET /api/v1/ingest/stats do lado do
 servidor. Ao final, remove os servidores simulados (cascata: métricas e
-notificações somem junto) — a menos que --keep seja passado.
+notificações somem junto) - a menos que --keep seja passado.
 
 Diferença para tools/mock_server.py: aquele é um servidor falso para testar o
 agente sem subir a central. Este é um CLIENTE que testa a central DE VERDADE
@@ -48,7 +48,7 @@ AGENT_VERSION = "loadtest-sim"  # marca síntese: fácil de filtrar/identificar 
 PILARES = ("operacional", "backup", "acesso", "logs")
 
 
-# ── geração de payload (realista, com --chaos-pct opcional) ───────────────────
+# geração de payload (realista, com --chaos-pct opcional)
 
 def _now_iso() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -110,7 +110,7 @@ def _build_payload(pilar: str, hostname: str, os_family: str, chaos_pct: int) ->
     }
 
 
-# ── registro / limpeza de servidores efêmeros ──────────────────────────────────
+# registro / limpeza de servidores efêmeros
 
 async def _register_fleet(count: int, prefix: str) -> list[dict]:
     """Cria `count` servidores no banco (metade windows, metade linux) e devolve
@@ -152,7 +152,7 @@ async def _cleanup_fleet(prefix: str) -> int:
     return n
 
 
-# ── carga ───────────────────────────────────────────────────────────────────
+# carga
 
 class _Stats:
     def __init__(self):
@@ -242,7 +242,7 @@ def _print_server_stats(data: dict | None):
     print()
 
 
-# ── comandos ───────────────────────────────────────────────────────────────────
+# comandos
 
 async def cmd_run(args: argparse.Namespace) -> int:
     fleet = await _register_fleet(args.count, args.prefix)

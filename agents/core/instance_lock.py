@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-instance_lock.py — Trava de instancia unica do agente.
+instance_lock.py - Trava de instancia unica do agente.
 
 Dois agentes rodando no mesmo host consomem a mesma fila local e geram
 "Flush concluido" duplicado e "Falha ao remover arquivo da fila". Isso acontece,
@@ -9,7 +9,7 @@ novo Start-ScheduledTask sobe um segundo agente.
 
 A trava e um lock do SISTEMA OPERACIONAL (fcntl.flock no Linux, msvcrt.locking
 no Windows) sobre um arquivo na pasta de estado do agente. O SO libera o lock
-quando o processo termina — mesmo morto a forca —, entao um arquivo deixado por
+quando o processo termina - mesmo morto a forca -, entao um arquivo deixado por
 um processo morto nunca bloqueia o proximo agente. O PID gravado no arquivo serve
 apenas de diagnostico.
 """
@@ -57,7 +57,7 @@ class InstanceLock:
 
         Raises:
             OSError: se o arquivo de trava nao pode ser criado/aberto (ex: pasta
-                     somente leitura) — o chamador decide como degradar.
+                     somente leitura) - o chamador decide como degradar.
         """
         os.makedirs(os.path.dirname(self.path) or '.', exist_ok=True)
         fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o640)
@@ -118,7 +118,7 @@ def acquire_instance_lock(queue_path: str) -> InstanceLock | None:
 
     Returns:
         A trava obtida (mantida ate o fim do processo); None se a pasta de estado
-        nao permite criar o arquivo — nesse caso segue sem trava, com aviso.
+        nao permite criar o arquivo - nesse caso segue sem trava, com aviso.
         Encerra o processo (EXIT_ALREADY_RUNNING) se outra instancia detem a trava.
     """
     lock = InstanceLock(state_file_path(queue_path, 'agent.lock'))

@@ -1,5 +1,5 @@
 """
-test_agent_melhorias_1_3_0.py — Melhorias do agente 1.3.0 (ver CONTRATO.md §8)
+test_agent_melhorias_1_3_0.py - Melhorias do agente 1.3.0 (ver CONTRATO.md §8)
 ==============================================================================
 Execute com:
     python -m unittest tests/test_agent_melhorias_1_3_0.py -v

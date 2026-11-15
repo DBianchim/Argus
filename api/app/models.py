@@ -1,10 +1,10 @@
 """
-models.py — Modelos ORM (SQLAlchemy 2.0)
+models.py - Modelos ORM (SQLAlchemy 2.0)
 
-    Server — registro e autenticação de cada servidor monitorado
-    Metric — cada payload recebido (envelope + bloco metrics como JSON)
+    Server - registro e autenticação de cada servidor monitorado
+    Metric - cada payload recebido (envelope + bloco metrics como JSON)
 
-A coluna `metrics` usa JSONB no PostgreSQL e JSON no SQLite (testes), via variant —
+A coluna `metrics` usa JSONB no PostgreSQL e JSON no SQLite (testes), via variant -
 mantendo portabilidade sem perder a indexação JSONB em produção.
 """
 
@@ -37,7 +37,7 @@ class Server(Base):
     os_family:    Mapped[str] = mapped_column(String(16))
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    # sha256 do token (64 hex) — nunca o token em claro
+    # sha256 do token (64 hex) - nunca o token em claro
     api_token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
 
     is_active:    Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -48,7 +48,7 @@ class Server(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    # Último status avaliado pelo motor de análise — memória para detectar
+    # Último status avaliado pelo motor de análise - memória para detectar
     # transições (e notificar só na mudança, não a cada ciclo).
     last_status:            Mapped[str | None] = mapped_column(String(20), nullable=True)
     last_status_changed_at: Mapped[datetime.datetime | None] = mapped_column(
@@ -78,7 +78,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name:  Mapped[str | None] = mapped_column(String(255), nullable=True)
     # admin (gerencia usuários e servidores) | operator (edita servidores) |
-    # viewer (somente leitura) — ver hierarquia em app.auth._ROLE_RANK
+    # viewer (somente leitura) - ver hierarquia em app.auth._ROLE_RANK
     role:          Mapped[str] = mapped_column(
         String(16), default="admin", server_default="admin", nullable=False
     )
@@ -93,7 +93,7 @@ class User(Base):
 
 
 class UserSession(Base):
-    """Sessão de login — token opaco armazenado apenas como sha256."""
+    """Sessão de login - token opaco armazenado apenas como sha256."""
     __tablename__ = "user_sessions"
 
     id:         Mapped[int] = mapped_column(primary_key=True)
@@ -141,14 +141,14 @@ class Metric(Base):
     __table_args__ = (
         # Suporta "último estado por pilar" e histórico filtrado por servidor.
         # Há também um índice GIN (jsonb_path_ops) sobre `metrics`, definido apenas
-        # na migração 0002 — é específico do PostgreSQL (SQLite dos testes não tem GIN).
+        # na migração 0002 - é específico do PostgreSQL (SQLite dos testes não tem GIN).
         Index("ix_metrics_server_pilar_collected", "server_id", "pilar", "collected_at"),
     )
 
 
 class AlertAck(Base):
     """
-    Reconhecimento de um alerta ativo — chave natural (server_id, pilar, item),
+    Reconhecimento de um alerta ativo - chave natural (server_id, pilar, item),
     a mesma identidade usada por Alert/AlertOut. Não é histórico: um novo upsert
     substitui o reconhecimento anterior, e a linha perde o sentido (mas não é
     apagada) quando a condição correspondente normaliza.
@@ -173,7 +173,7 @@ class AlertAck(Base):
 
 class NotificationLog(Base):
     """
-    Registro de cada transição de estado de um servidor — fonte da verdade
+    Registro de cada transição de estado de um servidor - fonte da verdade
     dos alertas. Alimenta o pop-up do dashboard e uma futura central de alertas.
     """
     __tablename__ = "notification_log"

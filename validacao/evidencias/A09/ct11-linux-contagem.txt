@@ -1,0 +1,8 @@
+      recebido       | valor |                                               detalhe                                               | status  
+---------------------+-------+-----------------------------------------------------------------------------------------------------+---------
+ 2026-10-24 15:53:46 | 24    | 24 tentativas de login SSH falhas (Failed password/Invalid user) nas ultimas 24h, lidas do journald | warning
+ 2026-10-24 15:52:35 | 12    | 12 tentativas de login SSH falhas (Failed password/Invalid user) nas ultimas 24h, lidas do journald | warning
+ 2026-10-24 15:52:19 | 12    | 12 tentativas de login SSH falhas (Failed password/Invalid user) nas ultimas 24h, lidas do journald | warning
+ 2026-10-24 15:52:03 | 12    | 12 tentativas de login SSH falhas (Failed password/Invalid user) nas ultimas 24h, lidas do journald | warning
+(4 rows)
+

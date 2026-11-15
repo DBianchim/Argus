@@ -1,0 +1,27 @@
+PUT config de teste em 2026-10-24T12:06:03-03:00 (2026-10-24T15:06:03Z)
+"config_version":6
+__http=200
+[1a instalacao] concluida 2026-10-24T01:20Z, mas INVALIDA como prova: o drop-in zz-teste-estado.conf (ajuste manual de 22/10) ainda existia e a pasta de estado ja era argus-agent com backup_state.json/config_cache.json; a limpeza prevista para 22/10 nao tinha sido executada na VM.
+2026-10-24T15:06:03Z PUT config de teste do servidor 5 (backup em /srv/argus-teste, .zip, intervalo 60 s): config_version 5 -> 6. A config original (v5: paths padrao, intervalo 300) foi guardada para restauracao.
+2026-10-24 ~15:2xZ copia do pacote (zip da branch com as correcoes, install.sh da branch, scripts) para /tmp/ct na UBUNTU26 por scp -O (o scp por SFTP falhou: Connection closed).
+2026-10-24 01:19Z (relogio da VM) 1a instalacao: INVALIDA (drop-in manual de 22/10 e chown ainda presentes).
+ACHADO: o relogio da VM estava ~14 h atrasado (01:55 na VM contra 15:47 UTC reais): o agente nao conseguia abrir a conexao TLS ("Falha de conexao ... erro=SS...", fila local de 65 arquivos) e o servidor ficou sem contato de 00:23Z ate 15:48Z. Corrigido por NTP (timedatectl set-ntp true; "System clock synchronized: yes", 15:47:49 UTC). O apt do systemd-timesyncd falhou por lock do unattended-upgrades (nao necessario: NTP ja ativo).
+2a instalacao (limpa; PRE-LIMPEZA do ajuste manual) executada na VM (saida nao capturada; o agente 1.2.0 enviou payloads a partir de 15:51:57Z, apos o flush de 61 payloads da fila gerados pelo 1.1.0).
+2026-10-24T15:52:19Z payload 1.2.0 do pilar acesso: failed_logins_count[warning] = 12 ("12 tentativas de login SSH falhas (Failed password/Invalid user) nas ultimas 24h, lidas do journald") + top_failed_ips: sao as 12 tentativas de 23/10 23:01Z, lidas do journald pelo servico (SupplementaryGroups=systemd-journal).
+2026-10-24T15:53:42Z fim de 12 novas tentativas SSH invalidas; 15:53:46Z payload com failed_logins_count = 24 (12 + 12). CT11 Linux com agente 1.2.0: APROVADO (detalhes em ct11-linux-contagem.txt).
+RESTAURACAO da config do servidor 5 (v5 original: backup padrao, intervalo 300) em 2026-10-24T16:19:43Z
+"interval_seconds":300
+"config_version":7
+__http=200
+CT03 Linux com o agente 1.2.0 da branch com as correcoes (acompanhamento pela API; ct03-linux-acompanhamento.txt):
+ 15:58:02Z backup_01.zip criado -> 15:58:18Z payload OK, stagnant=false, hash_source=computed, sem state_warning
+ 16:02:02Z backup_02.zip (copia identica) -> 16:03:21Z payload WARN, stagnant=true, sha256=previous_sha256=4dcc52ed (79 s)
+ 16:06:03Z backup_03.zip (conteudo diferente) -> 16:06:37Z payload OK, stagnant=false (34 s)
+ 16:10:03Z backup_04_truncado.zip (5.800.000 B) -> 16:11:06Z payload INTEGRITY_FAIL, integrity_check=FAIL (63 s)
+ 16:14:05Z /srv/argus-teste removido -> 16:15:22Z NO_BACKUP_FOUND
+ Pasta de estado apos o teste: backup_state.json (16:06:30, escrito pelo servico), config_cache.json e agent.lock, dono argus-agent. Nenhum ajuste manual de permissao.
+rebuild da central (docker compose up -d --build) iniciado 2026-10-24T13:41:47-03:00 (2026-10-24T16:41:47Z); versao da tag agente-1.2.0 (main com merge)
+terminado 2026-10-24T16:42:55Z codigo 0
+2026-10-24T16:43Z central reconstruida com a main mesclada (tag agente-1.2.0): /health 200; /install/argus-agent.zip serve AGENT_VERSION 1.2.0 com core/instance_lock.py; os 3 servidores seguiram reportando.
+Servicos criticos padrao (servidores temporarios 162 e 163, removidos): linux = ['sshd'] (antes ['sshd','cron']); windows = ['LanmanServer','Dnscache','W32Time'] (inalterado). Evidencia: servicos-padrao.txt
+Observacao de documentacao: install/INSTALL.md linha ~44 ainda diz "servico do Windows" (o agente roda como Tarefa Agendada).

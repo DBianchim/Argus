@@ -1,14 +1,14 @@
 """
-users.py — Gerenciamento de usuários do dashboard (admin)
+users.py - Gerenciamento de usuários do dashboard (admin)
 
-    GET    /api/v1/users                     — lista os usuários
-    POST   /api/v1/users                     — cria um usuário
-    PATCH  /api/v1/users/{id}                — edita apelido / papel / ativo
-    DELETE /api/v1/users/{id}                — remove o usuário
-    POST   /api/v1/users/{id}/reset-password — admin define nova senha
+    GET    /api/v1/users                     - lista os usuários
+    POST   /api/v1/users                     - cria um usuário
+    PATCH  /api/v1/users/{id}                - edita apelido / papel / ativo
+    DELETE /api/v1/users/{id}                - remove o usuário
+    POST   /api/v1/users/{id}/reset-password - admin define nova senha
 
 Todos os endpoints exigem papel admin (ver app.auth.require_admin). Um admin
-não pode se auto-rebaixar/desativar/remover se for o último admin ativo —
+não pode se auto-rebaixar/desativar/remover se for o último admin ativo -
 isso deixaria o sistema sem ninguém capaz de gerenciar contas.
 """
 

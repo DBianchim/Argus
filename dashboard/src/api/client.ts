@@ -39,7 +39,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (response.status === 401) {
-    // Sessão expirada/revogada — volta para a entrada
+    // Sessão expirada/revogada - volta para a entrada
     clearSession();
     if (window.location.pathname !== "/login") {
       window.location.href = "/login";
@@ -103,7 +103,7 @@ export async function changePassword(
   });
 }
 
-// ── gerenciamento de usuarios (admin) ──────────────────────────────────────────
+// gerenciamento de usuarios (admin)
 
 export interface UserCreateInput {
   username: string;
@@ -141,7 +141,7 @@ export function resetPassword(id: number, newPassword: string): Promise<void> {
   });
 }
 
-// ── servidores (registro e reconhecimento de alertas) ──────────────────────────
+// servidores (registro e reconhecimento de alertas)
 
 export interface ServerCreateInput {
   hostname: string;
@@ -167,7 +167,7 @@ export function ackAlert(
   });
 }
 
-// ── sessões (Minha conta) ───────────────────────────────────────────────────────
+// sessões (Minha conta)
 
 export function listSessions(): Promise<SessionOut[]> {
   return api<SessionOut[]>("/api/v1/auth/sessions");

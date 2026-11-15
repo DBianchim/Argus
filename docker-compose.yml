@@ -1,10 +1,10 @@
 # =============================================================================
-# docker-compose.yml — CENTRAL do Argus (on-premise, uma instalação por empresa)
+# docker-compose.yml - CENTRAL do Argus (on-premise, uma instalação por empresa)
 #
-#   db     → PostgreSQL 18 (volume persistente, sem porta no host)
-#   api    → FastAPI + dashboard buildado (migrations no boot, sem porta no host)
-#   caddy  → reverse proxy + HTTPS (único serviço exposto: 80/443)
-#   backup → dump periódico do banco para ./backups no HOST (ver docker/backup.sh)
+#   db     -> PostgreSQL 18 (volume persistente, sem porta no host)
+#   api    -> FastAPI + dashboard buildado (migrations no boot, sem porta no host)
+#   caddy  -> reverse proxy + HTTPS (único serviço exposto: 80/443)
+#   backup -> dump periódico do banco para ./backups no HOST (ver docker/backup.sh)
 #
 # Subir:   docker compose up -d --build
 # Segredos vêm do arquivo .env (ver .env.example). Todos com restart automático,
@@ -29,7 +29,7 @@ services:
       timeout: 5s
       retries: 10
     networks: [argus-net]
-    # Sem `ports:` — o banco só é acessível pela rede interna do compose.
+    # Sem `ports:` - o banco só é acessível pela rede interna do compose.
 
   api:
     build:
@@ -53,7 +53,7 @@ services:
       retries: 6
       start_period: 30s
     networks: [argus-net]
-    # Sem `ports:` — a API só é acessível via Caddy.
+    # Sem `ports:` - a API só é acessível via Caddy.
 
   backup:
     image: postgres:18
@@ -69,7 +69,7 @@ services:
     volumes:
       - ./docker/backup.sh:/scripts/backup.sh:ro
       - ./docker/restore.sh:/restore.sh:ro
-      # Bind mount para uma pasta do HOST — não um volume Docker gerenciado.
+      # Bind mount para uma pasta do HOST - não um volume Docker gerenciado.
       # Um backup que só existe no mesmo disco da central não protege contra a
       # perda desse disco; esta pasta é o que deve ser copiado para fora da
       # máquina (rsync, robocopy, sync de nuvem).
@@ -89,7 +89,7 @@ services:
       - "443:443"
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
-      - argus-caddy-data:/data       # CA local + certificados — NÃO descartar
+      - argus-caddy-data:/data       # CA local + certificados - NÃO descartar
       - argus-caddy-config:/config
     networks: [argus-net]
 

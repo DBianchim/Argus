@@ -5,7 +5,7 @@ import { STATUS_RANK } from "../utils";
 export type OsFilter = "all" | "windows" | "linux";
 export type PilarFilter = "all" | "operacional" | "backup" | "acesso" | "logs";
 
-/** Filtro SO/pilar + ordenação por severidade — compartilhado entre Dashboard e Servidores. */
+/** Filtro SO/pilar + ordenação por severidade - compartilhado entre Dashboard e Servidores. */
 export function useServerFilters(servers: ServerOverview[]) {
   const [os, setOs] = useState<OsFilter>("all");
   const [pilar, setPilar] = useState<PilarFilter>("all");

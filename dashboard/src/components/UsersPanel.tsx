@@ -1,4 +1,4 @@
-// Painel de gestão de usuários — reusado em Configurações (aba Usuários e
+// Painel de gestão de usuários - reusado em Configurações (aba Usuários e
 // papéis) e Minha conta (Gestão de usuários). Só admins veem a lista de
 // verdade; os demais papéis recebem uma explicação de para quem pedir.
 

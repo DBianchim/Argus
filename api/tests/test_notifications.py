@@ -1,5 +1,5 @@
 """
-test_notifications.py — Transições de estado e registro de alertas.
+test_notifications.py - Transições de estado e registro de alertas.
 """
 
 import datetime
@@ -14,7 +14,7 @@ from app.notifications import should_notify
 from conftest import AGENT_HEADERS, DASHBOARD_HEADERS, make_envelope
 
 
-# ── lógica pura de transição ──────────────────────────────────────────────────
+# lógica pura de transição
 
 def test_should_notify_transitions():
     assert should_notify(None, Status.OK) is None
@@ -30,7 +30,7 @@ def test_should_notify_transitions():
     assert should_notify(Status.UNKNOWN, Status.OK) is None    # nascer com dados
 
 
-# ── integração via ingest ─────────────────────────────────────────────────────
+# integração via ingest
 
 async def _ingest(client, pilar, metrics):
     envelope = make_envelope(pilar=pilar)
@@ -47,18 +47,18 @@ async def _count(session_factory) -> int:
 
 
 async def test_transition_records_one_notification(client, server_id, session_factory):
-    # Primeiro payload já crítico → 1 notificação
+    # Primeiro payload já crítico -> 1 notificação
     await _ingest(client, "operacional", {"cpu": {"usage_pct": 95.0}})
     assert await _count(session_factory) == 1
 
-    # Reingestão estável (continua crítico) → NÃO duplica
+    # Reingestão estável (continua crítico) -> NÃO duplica
     await _ingest(client, "operacional", {"cpu": {"usage_pct": 96.0}})
     assert await _count(session_factory) == 1
 
 
 async def test_recovery_generates_info_notification(client, server_id, session_factory):
     await _ingest(client, "operacional", {"cpu": {"usage_pct": 95.0}})   # crit
-    await _ingest(client, "operacional", {"cpu": {"usage_pct": 10.0}})   # → ok
+    await _ingest(client, "operacional", {"cpu": {"usage_pct": 10.0}})   # -> ok
 
     async with session_factory() as session:
         rows = (await session.execute(
@@ -103,7 +103,7 @@ async def test_notifications_endpoint_and_since_id(client, server_id):
     first_id = page["items"][0]["id"]
     assert page["items"][0]["status_to"] == "crit"
 
-    # since_id = id atual → nada novo
+    # since_id = id atual -> nada novo
     empty = (await client.get(
         f"/api/v1/notifications?since_id={first_id}", headers=DASHBOARD_HEADERS
     )).json()
