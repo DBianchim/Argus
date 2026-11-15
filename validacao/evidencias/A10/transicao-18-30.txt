@@ -1,0 +1,20 @@
+      recebido       | contagem |            detalhe            
+---------------------+----------+-------------------------------
+ 2026-10-23 22:44:29 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:44:51 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:45:30 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:45:51 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:46:29 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:46:52 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:47:30 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:47:53 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:48:31 | 18       | 18 falhas de logon (EID 4625)
+ 2026-10-23 22:48:54 | 30       | 30 falhas de logon (EID 4625)
+ 2026-10-23 22:49:31 | 30       | 30 falhas de logon (EID 4625)
+ 2026-10-23 22:49:54 | 30       | 30 falhas de logon (EID 4625)
+ 2026-10-23 22:50:32 | 30       | 30 falhas de logon (EID 4625)
+ 2026-10-23 22:50:55 | 30       | 30 falhas de logon (EID 4625)
+ 2026-10-23 22:51:32 | 30       | 30 falhas de logon (EID 4625)
+ 2026-10-23 22:51:55 | 30       | 30 falhas de logon (EID 4625)
+(16 rows)
+

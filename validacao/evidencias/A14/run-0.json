@@ -1,0 +1,54 @@
+{
+ "inicio_utc": "2026-10-23T23:17:05Z",
+ "parametros": {
+  "count": 20,
+  "duration": 60.0,
+  "interval": 10.0,
+  "burst": false,
+  "base_url": "https://argus-lab.local"
+ },
+ "requisicoes": 480,
+ "por_status": {
+  "200": 480
+ },
+ "falhas_de_rede": 0,
+ "vazao_req_s": 6.89,
+ "cliente_ms": {
+  "p50": 26.0,
+  "p95": 65.1,
+  "p99": 355.5,
+  "max": 419.9
+ },
+ "central_antes": {
+  "uptime_seconds": 10.3,
+  "total_received": 0,
+  "total_persisted": 0,
+  "total_failed": 0,
+  "per_pilar": {},
+  "throughput_per_min": 0,
+  "sample_size": 0,
+  "persist_ms_avg": 0.0,
+  "persist_ms_p50": 0.0,
+  "persist_ms_p95": 0.0,
+  "persist_ms_max": 0.0
+ },
+ "central_depois": {
+  "uptime_seconds": 80.5,
+  "total_received": 480,
+  "total_persisted": 480,
+  "total_failed": 0,
+  "per_pilar": {
+   "operacional": 120,
+   "backup": 120,
+   "acesso": 120,
+   "logs": 120
+  },
+  "throughput_per_min": 400,
+  "sample_size": 480,
+  "persist_ms_avg": 18.37,
+  "persist_ms_p50": 9.3,
+  "persist_ms_p95": 34.68,
+  "persist_ms_max": 406.79
+ },
+ "servidores_removidos": "20/20"
+}

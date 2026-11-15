@@ -1,0 +1,9 @@
+# checagem dos servicos criticos padrao com servidores temporarios, 2026-10-24T13:43:20-03:00 (central reconstruida com a main mesclada)
+-- linux (servidor temporario id 162):
+critical_services = ['sshd'] | backup.paths = ['/var/backups', '/mnt/backups']
+DELETE: __http=204
+-- windows (servidor temporario id 163):
+critical_services = ['LanmanServer', 'Dnscache', 'W32Time'] | backup.paths = ['D:\\Backups', 'E:\\Backups']
+DELETE: __http=204
+-- restantes ct-padrao-*:
+[]

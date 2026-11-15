@@ -1,0 +1,19 @@
+inicio 2026-10-24T15:58:43Z  (T1 backup_01 criado na VM em 2026-10-24T15:58:02Z)
+2026-10-24 15:58:18|1.2.0|OK|backup_01.zip|false|4dcc52ed|e70ac78f|computed|-|OK
+2026-10-24 15:59:34|1.2.0|OK|backup_01.zip|false|4dcc52ed|e70ac78f|cached|-|OK
+2026-10-24 16:00:48|1.2.0|OK|backup_01.zip|false|4dcc52ed|e70ac78f|cached|-|OK
+2026-10-24 16:01:53|1.2.0|OK|backup_01.zip|false|4dcc52ed|e70ac78f|cached|-|OK
+2026-10-24 16:03:21|1.2.0|WARN|backup_02.zip|true|4dcc52ed|4dcc52ed|computed|-|WARN
+2026-10-24 16:04:21|1.2.0|WARN|backup_02.zip|true|4dcc52ed|4dcc52ed|cached|-|WARN
+2026-10-24 16:06:37|1.2.0|OK|backup_03.zip|false|dca54829|4dcc52ed|computed|-|OK
+2026-10-24 16:08:18|1.2.0|OK|backup_03.zip|false|dca54829|4dcc52ed|cached|-|OK
+2026-10-24 16:09:45|1.2.0|OK|backup_03.zip|false|dca54829|4dcc52ed|cached|-|OK
+2026-10-24 16:11:06|1.2.0|INTEGRITY_FAIL|backup_04_truncado.zip|-|-|-|-|-|FAIL
+2026-10-24 16:12:30|1.2.0|INTEGRITY_FAIL|backup_04_truncado.zip|-|-|-|-|-|FAIL
+2026-10-24 16:14:02|1.2.0|INTEGRITY_FAIL|backup_04_truncado.zip|-|-|-|-|-|FAIL
+2026-10-24 16:15:22|1.2.0|NO_BACKUP_FOUND||-|-|-|-|-|-
+2026-10-24 16:16:23|1.2.0|NO_BACKUP_FOUND||-|-|-|-|-|-
+2026-10-24 16:17:24|1.2.0|NO_BACKUP_FOUND||-|-|-|-|-|-
+2026-10-24 16:18:37|1.2.0|NO_BACKUP_FOUND||-|-|-|-|-|-
+fim 2026-10-24T16:19:14Z
+payloads com state_warning no teste (15:58 a 16:19Z): 0

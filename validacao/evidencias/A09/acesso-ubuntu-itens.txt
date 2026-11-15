@@ -1,0 +1,12 @@
+      recebido       |                                                                                                                           itens                                                                                                                            
+---------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 2026-10-23 22:55:50 | sshd_permitrootlogin[warning], sshd_passwordauthentication[warning], sshd_permitemptypasswords[warning], sshd_maxauthtries[warning], sshd_protocol[warning], root_direct_logins[ok], locked_accounts[info], privileged_groups[info], auditd_service[error]
+ 2026-10-23 22:56:19 | sshd_permitrootlogin[warning], sshd_passwordauthentication[warning], sshd_permitemptypasswords[warning], sshd_maxauthtries[warning], sshd_protocol[warning], root_direct_logins[ok], locked_accounts[info], privileged_groups[info], auditd_service[error]
+ 2026-10-23 22:56:32 | sshd_permitrootlogin[warning], sshd_passwordauthentication[warning], sshd_permitemptypasswords[warning], sshd_maxauthtries[warning], sshd_protocol[warning], root_direct_logins[ok], locked_accounts[info], privileged_groups[info], auditd_service[error]
+ 2026-10-23 22:56:59 | sshd_permitrootlogin[warning], sshd_passwordauthentication[warning], sshd_permitemptypasswords[warning], sshd_maxauthtries[warning], sshd_protocol[warning], root_direct_logins[ok], locked_accounts[info], privileged_groups[info], auditd_service[error]
+ 2026-10-23 22:57:28 | sshd_permitrootlogin[warning], sshd_passwordauthentication[warning], sshd_permitemptypasswords[warning], sshd_maxauthtries[warning], sshd_protocol[warning], root_direct_logins[ok], locked_accounts[info], privileged_groups[info], auditd_service[error]
+ 2026-10-23 23:01:48 | sshd_permitrootlogin[warning], sshd_passwordauthentication[warning], sshd_permitemptypasswords[warning], sshd_maxauthtries[warning], sshd_protocol[warning], root_direct_logins[ok], locked_accounts[info], privileged_groups[info], auditd_service[error]
+ 2026-10-23 23:07:27 | sshd_permitrootlogin[warning], sshd_passwordauthentication[warning], sshd_permitemptypasswords[warning], sshd_maxauthtries[warning], sshd_protocol[warning], root_direct_logins[ok], locked_accounts[info], privileged_groups[info], auditd_service[error]
+(7 rows)
+
+payloads acesso do UBUNTU26 contendo failed_logins_count/top_failed_ips: 0

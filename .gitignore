@@ -2,7 +2,7 @@
 # .gitignore raiz do projeto Argus
 # =============================================================================
 
-# ── Segredos (NUNCA versionar) ───────────────────────────────────────────────
+# Segredos (NUNCA versionar)
 # api/.env contém a senha do banco; agentes em produção usam variáveis de
 # ambiente. Os .env.example (templates) SÃO versionados.
 .env
@@ -10,10 +10,10 @@
 !*.env.example
 agent.env
 
-# ── Backups locais (gerados pelo serviço `backup` do docker-compose) ────────
+# Backups locais (gerados pelo serviço `backup` do docker-compose)
 /backups/
 
-# ── Python ───────────────────────────────────────────────────────────────────
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -23,28 +23,27 @@ __pycache__/
 venv/
 env/
 
-# ── Node / frontend ──────────────────────────────────────────────────────────
+# Node / frontend
 node_modules/
 dist/
 dist-ssr/
 *.local
 
-# ── Bancos e artefatos locais ────────────────────────────────────────────────
+# Bancos e artefatos locais
 *.sqlite3
 *.db
 
-# ── Logs e temporários ───────────────────────────────────────────────────────
+# Logs e temporários
 *.log
 *.bak
 *.bak.*
 
-# ── Editor / SO ──────────────────────────────────────────────────────────────
+# Editor / SO
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# ── Material local (não versionar) ───────────────────────────────────────────
-/docs/
-/Elabore um designer profissional para argus-handoff.zip
+# Material local (não versionar)
+/git ignore/
 *.zip

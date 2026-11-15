@@ -1,0 +1,14 @@
+# CT12 parte 2 - 2026-10-22T23:13:12-03:00
+== A. testes automatizados de sessao/login/limite (pytest, SQLite)
+======================== 7 passed, 4 warnings in 2.13s ========================
+== B. login em producao: mensagem para usuario inexistente x senha errada de usuario existente
+[usuario-que-nao-existe-ct12] {"detail":"Credenciais inválidas"}
+http=401
+[usuario existente (nome omitido)] {"detail":"Credenciais inválidas"}
+http=401
+== C. limite de /install/* (30/min): 33 requisicoes seguidas
+200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 429 429 429 
+== D. origem vista pela API nessas requisicoes e nos agentes
+     33 install.sh de [IP-PROXY]
+ingest dos agentes remotos:      73 127.0.0.1
+ingest dos agentes remotos:      89 [IP-PROXY]

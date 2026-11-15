@@ -1,0 +1,27 @@
+# gerado em 2026-10-22T23:13:57-03:00 a partir de GET /servers/{id}/latest
+
+## pilar operacional
+- Windows 11 (DESKTOP-G6ID80A) v1.0.0 (2026-10-23T02:12:29Z): chaves=['cpu', 'disk', 'memory', 'services']; servicos=[('LanmanServer', 'running')]
+- Windows Server 2016 (WINSRV2016-TEST) v1.0.0 (2026-10-23T02:13:31Z): chaves=['cpu', 'disk', 'memory', 'services']; servicos=[('LanmanServer', 'running'), ('Dnscache', 'running'), ('W32Time', 'running')]
+- Ubuntu 26.04 (UBUNTU26) v1.1.0 (2026-10-23T02:13:14Z): chaves=['cpu', 'disk', 'memory', 'services', 'uptime_seconds']; servicos=[('sshd', 'active'), ('cron', 'inactive')]
+
+## pilar backup
+- Windows 11 (DESKTOP-G6ID80A) v1.0.0 (2026-10-21T02:04:27Z): status=NO_BACKUP_FOUND (ultimo payload; pilar hoje desabilitado)
+- Windows Server 2016 (WINSRV2016-TEST) v1.0.0 (2026-10-21T02:03:07Z): status=NO_BACKUP_FOUND (ultimo payload; pilar hoje desabilitado)
+- Ubuntu 26.04 (UBUNTU26) v1.1.0 (2026-10-23T02:13:17Z): status=NO_BACKUP_FOUND (ultimo payload; pilar hoje desabilitado)
+
+## pilar acesso
+- Windows 11 (DESKTOP-G6ID80A) v1.0.0 (2026-10-23T02:12:32Z): 8 achados {'ok': 2, 'info': 1, 'warning': 5}; erro_de_coleta=[]
+    itens: windows_failed_logins_4625[ok], windows_successful_logins_4624[info], windows_account_changes[ok], audit_policy_logon[warning], audit_policy_account_logon[warning], audit_policy_account_management[warning], audit_policy_privilege_use[warning], audit_policy_process_creation[warning]
+- Windows Server 2016 (WINSRV2016-TEST) v1.0.0 (2026-10-23T02:13:35Z): 8 achados {'warning': 1, 'info': 1, 'ok': 6}; erro_de_coleta=[]
+    itens: windows_failed_logins_4625[warning], windows_successful_logins_4624[info], windows_account_changes[ok], audit_policy_logon[ok], audit_policy_account_logon[ok], audit_policy_account_management[ok], audit_policy_privilege_use[ok], audit_policy_process_creation[ok]
+- Ubuntu 26.04 (UBUNTU26) v1.1.0 (2026-10-23T02:13:20Z): 9 achados {'warning': 5, 'ok': 1, 'info': 2, 'error': 1}; erro_de_coleta=['auditd_service']
+    itens: sshd_permitrootlogin[warning], sshd_passwordauthentication[warning], sshd_permitemptypasswords[warning], sshd_maxauthtries[warning], sshd_protocol[warning], root_direct_logins[ok], locked_accounts[info], privileged_groups[info], auditd_service[error]
+
+## pilar logs
+- Windows 11 (DESKTOP-G6ID80A) v1.0.0 (2026-10-23T02:12:33Z): 7 achados {'ok': 3, 'warning': 3, 'info': 1}; erro_de_coleta=[]
+    itens: windows_eventlog_service[ok], windows_channel_Security_size_mb[warning], windows_channel_System_size_mb[warning], windows_channel_Application_size_mb[warning], wec_subscriptions[ok], windows_security_log_last_event[info], windows_audit_log_cleared_1102[ok]
+- Windows Server 2016 (WINSRV2016-TEST) v1.0.0 (2026-10-23T02:13:38Z): 7 achados {'ok': 2, 'warning': 3, 'info': 1, 'error': 1}; erro_de_coleta=['windows_audit_log_cleared_1102']
+    itens: windows_eventlog_service[ok], windows_channel_Security_size_mb[warning], windows_channel_System_size_mb[warning], windows_channel_Application_size_mb[warning], wec_subscriptions[ok], windows_security_log_last_event[info], windows_audit_log_cleared_1102[error]
+- Ubuntu 26.04 (UBUNTU26) v1.1.0 (2026-10-23T02:13:23Z): 11 achados {'warning': 9, 'info': 1, 'error': 1}; erro_de_coleta=['auditd_status']
+    itens: service_rsyslog[warning], service_syslog-ng[warning], journald_integrity[warning], log_file_auth.log[warning], log_file_syslog[warning], log_file_secure[warning], log_file_messages[warning], log_file_audit.log[warning], logrotate_configs_count[info], auditd_status[error], last_log_entry[warning]

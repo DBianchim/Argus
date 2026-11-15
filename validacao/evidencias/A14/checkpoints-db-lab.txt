@@ -1,0 +1,12 @@
+2026-10-23 23:16:04.566 UTC [57] LOG:  checkpoint starting: shutdown immediate
+2026-10-23 23:16:04.859 UTC [57] LOG:  checkpoint complete: wrote 943 buffers (5.8%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.137 s, sync=0.137 s, total=0.301 s; sync
+2026-10-23 23:21:05.111 UTC [73] LOG:  checkpoint starting: time
+2026-10-23 23:21:26.454 UTC [73] LOG:  checkpoint complete: wrote 205 buffers (1.3%), wrote 3 SLRU buffers; 1 WAL file(s) added, 0 removed, 0 recycled; write=20.963 s, sync=0.243 s, total=21.344 s; sy
+2026-10-23 23:26:05.532 UTC [73] LOG:  checkpoint starting: time
+2026-10-23 23:26:14.000 UTC [73] LOG:  checkpoint complete: wrote 84 buffers (0.5%), wrote 2 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=8.442 s, sync=0.010 s, total=8.469 s; sync 
+2026-10-23 23:31:06.069 UTC [73] LOG:  checkpoint starting: time
+2026-10-23 23:31:11.824 UTC [73] LOG:  checkpoint complete: wrote 57 buffers (0.3%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=5.726 s, sync=0.009 s, total=5.755 s; sync 
+2026-10-23 23:36:06.892 UTC [73] LOG:  checkpoint starting: time
+2026-10-23 23:36:15.342 UTC [73] LOG:  checkpoint complete: wrote 84 buffers (0.5%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 1 recycled; write=8.425 s, sync=0.010 s, total=8.451 s; sync 
+2026-10-23 23:41:06.331 UTC [73] LOG:  checkpoint starting: time
+2026-10-23 23:41:09.977 UTC [73] LOG:  checkpoint complete: wrote 35 buffers (0.2%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=3.570 s, sync=0.015 s, total=3.647 s; sync 

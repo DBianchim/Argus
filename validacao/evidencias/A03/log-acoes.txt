@@ -1,0 +1,19 @@
+CT07 - Servidor indisponivel (WINSRV2016-TEST, id 4, agente 1.0.0, intervalo 60 s, offline_after=600 s, loop de offline a cada 60 s)
+Horarios em UTC. O relogio da VM esta em -02:00 (21:59:40-02:00 = 23:59:40Z); o do host em -03:00.
+23:59:40Z  [VM] Stop-ScheduledTask -TaskName argus-agent  (saida da VM: 21:59:40.011-02:00 / 21:59:42.699-02:00; State=Ready)
+           !! Mesmo com a tarefa em 'Ready', o processo "C:\Program Files\Python312\python.exe" runner.py (PID 3488) CONTINUOU em execucao (listado pelo Get-CimInstance logo apos o Stop).
+           O agente continuou enviando payloads a cada ~60 s (last_seen avancando: 00:01:37, 00:02:36, ... 00:09:44Z).
+00:01:18Z  parada informada pelo operador (antes da conferencia na API); a API mostrava o servidor ainda ativo.
+00:09:44.515Z  ULTIMO CONTATO do servidor (apos o operador encerrar o processo manualmente; o comando usado nao foi registrado). Esta e a referencia real de "parada efetiva".
+00:19:44.5Z  limite de 600 s sem contato
+00:20:02Z  GET /servers/4/health (polling 30 s) -> status=offline, alerta "Servidor sem contato", detalhe "Último contato: 2026-10-23T00:09:44.515753+00:00"
+00:20:43.641Z  notificacao id 1375 gravada: "WINSRV2016-TEST ficou OFFLINE" (crit; crit -> offline), detalhe "Servidor sem contato — Último contato: 2026-10-23T00:09:44.515753+00:00"
+Tempo ate a deteccao (health/API, polling de 30 s): 10 min 17,5 s apos o ultimo contato (entre 10 min 15 s e 10 min 45 s).
+Tempo ate a notificacao (loop da central): 10 min 59,1 s apos o ultimo contato.
+Desde o Stop-ScheduledTask (23:59:40Z) ate o OFFLINE: 20 min 22 s (inclui ~10 min em que o processo ainda rodava).
+ESCLARECIMENTO: a tarefa agendada so serve para iniciar o agente no boot; o operador encerrou o processo python manualmente (~00:09:4xZ, comando/metodo nao registrado). O Stop-ScheduledTask nao encerrou o runner.py (PID 3488 permaneceu na lista logo apos o Stop). Registrado como comportamento inesperado: a "parada do agente" documentada (Stop-ScheduledTask) nao interrompe a coleta no Windows.
+Inicio do agente informado pelo operador (sem saida registrada) em 2026-10-23T00:26:09Z
+Recuperacao: o operador iniciou o agente (Start-ScheduledTask) - saida do comando nao registrada; horario exato do start desconhecido (entre 00:22Z e 00:25Z).
+00:25:49.299Z  notificacao id 1376: "WINSRV2016-TEST ficou CRÍTICO" (offline -> crit), detalhe "Serviço crítico parado: W32Time — Estado: stopped". Primeiro contato apos a parada; last_seen 00:25:52Z. (A volta nao e para OK porque o servidor continua critico por W32Time parado / EID 1102 - estado inicial.)
+Indisponibilidade total (ultimo contato -> primeiro contato): 00:09:44.5Z -> 00:25:49Z = 16 min 5 s.
+Transicoes registradas: 1375 (crit -> offline, 00:20:43Z) e 1376 (offline -> crit, 00:25:49Z).
