@@ -1,14 +1,14 @@
 """
-notifications.py — Motor de notificações
+notifications.py - Motor de notificações
 
 Detecta transições de estado de um servidor (avaliadas por app.analysis) e
 registra um alerta em notification_log. O dashboard lê esse log e dispara o
-pop-up. Nenhuma entrega externa (e-mail/webhook) — só registro + pop-up in-app.
+pop-up. Nenhuma entrega externa (e-mail/webhook) - só registro + pop-up in-app.
 
 Princípios:
     - Notifica na MUDANÇA de estado, nunca a cada ciclo (usa servers.last_status).
-    - Piora (→warn/crit/offline) e recuperação (→ok) geram registro; estável não.
-    - record_transition NUNCA levanta — falha de notificação não quebra a ingestão.
+    - Piora (->warn/crit/offline) e recuperação (->ok) geram registro; estável não.
+    - record_transition NUNCA levanta - falha de notificação não quebra a ingestão.
 """
 
 import datetime
@@ -35,11 +35,11 @@ _STATUS_LABEL = {
 
 def should_notify(old: Status | None, new: Status) -> str | None:
     """
-    Decide se a transição old→new gera notificação e com qual severidade.
+    Decide se a transição old->new gera notificação e com qual severidade.
 
     Returns:
-        'crit' | 'warn' | 'info'  → registra
-        None                       → não notifica (sem mudança ou irrelevante)
+        'crit' | 'warn' | 'info'  -> registra
+        None                       -> não notifica (sem mudança ou irrelevante)
     """
     if old == new:
         return None
@@ -84,7 +84,7 @@ async def record_transition(
     """
     severity = should_notify(old, new)
     if severity is None:
-        # Mesmo sem alerta, mantém o last_status atualizado (ex.: unknown→ok)
+        # Mesmo sem alerta, mantém o last_status atualizado (ex.: unknown->ok)
         _update_server_state(server, new)
         return None
 

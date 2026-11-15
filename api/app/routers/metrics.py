@@ -1,7 +1,7 @@
 """
-metrics.py — Histórico de métricas (protegido pelo token de dashboard)
+metrics.py - Histórico de métricas (protegido pelo token de dashboard)
 
-    GET /api/v1/metrics — histórico com filtros (server_id, pilar, since, until)
+    GET /api/v1/metrics - histórico com filtros (server_id, pilar, since, until)
                           e paginação (limit/offset).
 """
 

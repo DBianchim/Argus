@@ -29,7 +29,7 @@ Write-Host "   Argus - Instalador da Central (Docker)" -ForegroundColor Cyan
 Write-Host " ============================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Docker disponivel? ───────────────────────────────────────────────────────
+# Docker disponivel?
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Fail "Docker nao encontrado. Instale o Docker Desktop (https://www.docker.com/products/docker-desktop/) e abra-o."
 }
@@ -37,7 +37,7 @@ try { docker info 2>$null | Out-Null; if ($LASTEXITCODE -ne 0) { throw } }
 catch { Fail "O Docker esta instalado mas nao esta rodando. Abra o Docker Desktop, aguarde iniciar e rode de novo." }
 Info "Docker disponivel"
 
-# ── .env (segredos) ──────────────────────────────────────────────────────────
+# .env (segredos)
 function New-Secret { -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 36 | ForEach-Object {[char]$_}) }
 
 $envPath = Join-Path $Root '.env'
@@ -66,12 +66,12 @@ foreach ($line in Get-Content $envPath) {
     if ($line -match '^\s*ARGUS_HOST\s*=\s*(.+?)\s*$') { $argusHost = $Matches[1] }
 }
 
-# ── subir a stack ────────────────────────────────────────────────────────────
+# subir a stack
 Info "Subindo a central (docker compose up -d --build) — o primeiro build leva alguns minutos..."
 docker compose up -d --build
 if ($LASTEXITCODE -ne 0) { Fail "docker compose falhou. Veja a saida acima." }
 
-# ── aguardar a API ficar saudavel ────────────────────────────────────────────
+# aguardar a API ficar saudavel
 Info "Aguardando a API ficar saudavel (migrations rodam no boot)..."
 $healthy = $false
 foreach ($i in 1..30) {
@@ -82,7 +82,7 @@ foreach ($i in 1..30) {
 if ($healthy) { Info "Central no ar e saudavel" }
 else { Warn "A API ainda nao reportou 'healthy'. Veja: docker compose logs api" }
 
-# ── primeiro usuario do dashboard ────────────────────────────────────────────
+# primeiro usuario do dashboard
 Write-Host ""
 $createUser = Read-Host "  Criar agora um usuario de login do dashboard? [S/n]"
 if ($createUser -notmatch '^[nN]') {
@@ -92,7 +92,7 @@ if ($createUser -notmatch '^[nN]') {
     docker compose exec api python manage.py create-user --username $user
 }
 
-# ── resumo ───────────────────────────────────────────────────────────────────
+# resumo
 Write-Host ""
 Write-Host " ============================================================" -ForegroundColor Green
 Write-Host "   Central instalada!" -ForegroundColor Green

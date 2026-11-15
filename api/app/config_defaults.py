@@ -1,14 +1,14 @@
 """
-config_defaults.py — Config padrão por servidor + helpers de leitura.
+config_defaults.py - Config padrão por servidor + helpers de leitura.
 
 A central é dona da configuração de cada servidor (serviços críticos, caminhos de
 backup, thresholds, intervalo, pilares ligados). O agente baixa essa config e a
 aplica; a central também a usa na análise (thresholds). Este módulo centraliza:
 
-- `default_config(os_family)` — a config inicial de um servidor recém-registrado
+- `default_config(os_family)` - a config inicial de um servidor recém-registrado
   (espelha os defaults históricos que estavam fixos no agente e em analysis.py).
 - helpers `op_thresholds()` para o motor de análise ler os limiares da config com
-  fallback seguro (config ausente/parcial nunca quebra a análise — ver CONTRATO.md).
+  fallback seguro (config ausente/parcial nunca quebra a análise - ver CONTRATO.md).
 
 O blob usa LISTAS ÚNICAS (`critical_services`, `paths`): o `Server` já tem `os_family`,
 então não precisa do split `_windows/_linux`. O agente mapeia para o SO dele.

@@ -1,15 +1,15 @@
 """
-auth.py (router) — Entrada do usuário no dashboard
+auth.py (router) - Entrada do usuário no dashboard
 
-    POST   /api/v1/auth/login             — credenciais → token de sessão (12h)
-    POST   /api/v1/auth/logout            — revoga a sessão atual
-    GET    /api/v1/auth/me                — dados do usuário logado
-    PATCH  /api/v1/auth/me                — edita o próprio nome de exibição
-    GET    /api/v1/auth/sessions          — sessões ativas do usuário logado
-    DELETE /api/v1/auth/sessions/{id}     — revoga uma sessão (própria)
+    POST   /api/v1/auth/login             - credenciais -> token de sessão (12h)
+    POST   /api/v1/auth/logout            - revoga a sessão atual
+    GET    /api/v1/auth/me                - dados do usuário logado
+    PATCH  /api/v1/auth/me                - edita o próprio nome de exibição
+    GET    /api/v1/auth/sessions          - sessões ativas do usuário logado
+    DELETE /api/v1/auth/sessions/{id}     - revoga uma sessão (própria)
 
 Segurança:
-    - Erro de login é sempre genérico ("credenciais inválidas") — não revela
+    - Erro de login é sempre genérico ("credenciais inválidas") - não revela
       se o usuário existe.
     - O token de sessão é opaco e armazenado apenas como sha256; revogável.
 """
@@ -38,7 +38,7 @@ _GENERIC_401 = HTTPException(
 async def login(body: LoginIn, session: AsyncSession = Depends(get_session)):
     user = await crud.get_user_by_username(session, body.username)
 
-    # Mensagem idêntica para usuário inexistente, inativo ou senha errada —
+    # Mensagem idêntica para usuário inexistente, inativo ou senha errada -
     # não dar pistas sobre quais contas existem.
     if user is None or not user.is_active:
         raise _GENERIC_401
@@ -63,7 +63,7 @@ async def logout(
 ):
     token = _extract_bearer(authorization)
     await crud.revoke_session_by_token(session, token)
-    # Sempre 200 — revogar sessão inexistente não é erro (idempotente)
+    # Sempre 200 - revogar sessão inexistente não é erro (idempotente)
     return {"status": "ok"}
 
 
@@ -79,7 +79,7 @@ async def patch_me(
     current=Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Autoatendimento — edita só o próprio nome de exibição (papel/ativo exigem admin)."""
+    """Autoatendimento - edita só o próprio nome de exibição (papel/ativo exigem admin)."""
     _, user = current
     user = await crud.update_own_display_name(session, user, body.display_name)
     return UserOut.model_validate(user)

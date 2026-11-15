@@ -1,5 +1,5 @@
 """
-ingest_metrics.py — Instrumentação da ingestão (em memória, sem dependências)
+ingest_metrics.py - Instrumentação da ingestão (em memória, sem dependências)
 
 Coleta contadores e latências de cada POST /api/v1/ingest para dar visibilidade
 de *desempenho* da central: quantos payloads chegam, quantos persistem, quanto
@@ -13,7 +13,7 @@ GET /api/v1/ingest/stats.
 
 Concorrência: a API é single-threaded (event loop asyncio). Os métodos abaixo
 não têm pontos de `await`, então cada `record()`/`snapshot()` é atômico em
-relação aos outros — sem necessidade de lock.
+relação aos outros - sem necessidade de lock.
 """
 
 import time

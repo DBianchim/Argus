@@ -1,5 +1,5 @@
 """
-env.py — Ambiente de migrações Alembic (modo async com asyncpg)
+env.py - Ambiente de migrações Alembic (modo async com asyncpg)
 
 A URL vem de app.config.settings (que lê do .env / variáveis de ambiente).
 target_metadata = Base.metadata permite autogenerate em revisões futuras.

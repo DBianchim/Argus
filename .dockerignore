@@ -1,7 +1,7 @@
-# Contexto de build do Docker — mantém a imagem enxuta e o build reprodutível.
+# Contexto de build do Docker - mantém a imagem enxuta e o build reprodutível.
 # Tudo que não é necessário para construir a CENTRAL (API + dashboard) fica de fora.
 
-# Segredos — NUNCA entram na imagem
+# Segredos - NUNCA entram na imagem
 *.env
 !*.env.example
 
@@ -42,7 +42,7 @@
 .DS_Store
 Thumbs.db
 
-# Fora da imagem. NOTA: install/ É incluído de propósito — a central serve os
+# Fora da imagem. NOTA: install/ É incluído de propósito - a central serve os
 # scripts de instalação dos agentes (bootstrap) a partir de /app/install.
 tools
 tests

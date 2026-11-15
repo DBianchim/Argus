@@ -20,7 +20,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-# ── constantes ────────────────────────────────────────────────────────────────
+# constantes
 $AppName     = 'argus-agent'
 $AppDisplay  = 'Argus - Agente de Monitoramento de Infraestrutura'
 $InstallDir  = 'C:\Program Files\Argus\agent-monitor'
@@ -44,7 +44,7 @@ Write-Host "  que inicia no boot e envia metricas para a central por HTTPS." -Fo
 Write-Host "  Voce vai precisar de: o ENDERECO da central e um TOKEN deste servidor." -ForegroundColor Gray
 Write-Host ""
 
-# ── privilegios de administrador ──────────────────────────────────────────────
+# privilegios de administrador
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
            ).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 if (-not $isAdmin) {
@@ -52,7 +52,7 @@ if (-not $isAdmin) {
 }
 Info "Privilegios de Administrador confirmados"
 
-# ── parametros (env vars ou prompt) ─────────────────────────────────────────────
+# parametros (env vars ou prompt)
 $ArgusHost = $env:ARGUS_HOST
 if (-not $ArgusHost) {
     Write-Host ""
@@ -80,7 +80,7 @@ $Interval = $env:ARGUS_INTERVAL; if (-not $Interval) { $Interval = '300' }
 $Base = "http://$ArgusHost/install"
 Info "Central: $ArgusHost"
 
-# ── pre-checagem: central acessivel e token valido (falha cedo, com msg clara) ──
+# pre-checagem: central acessivel e token valido (falha cedo, com msg clara)
 # Valida ANTES de instalar Python/servico. O cert interno ainda nao e confiado nesta
 # maquina, entao ignoramos a validacao TLS so para esta checagem (a CA e instalada
 # logo adiante). Usamos um callback compilado em C# (Add-Type) porque no PowerShell
@@ -116,7 +116,7 @@ try {
     [ArgusCertBypass]::Off()
 }
 
-# ── download dos artefatos (CA + codigo do agente) ──────────────────────────────
+# download dos artefatos (CA + codigo do agente)
 $Tmp = Join-Path $env:TEMP "argus-install-$(Get-Random)"
 New-Item -ItemType Directory -Path $Tmp -Force | Out-Null
 $caTmp  = Join-Path $Tmp 'argus-ca.crt'
@@ -134,7 +134,7 @@ try {
 }
 Info "Artefatos baixados"
 
-# ── Python "para todos os usuarios" ─────────────────────────────────────────────
+# Python "para todos os usuarios"
 function Find-MachinePython {
     $globs = @(
         'C:\Program Files\Python3*\python.exe',
@@ -171,7 +171,7 @@ $req = Join-Path $srcDir 'requirements.txt'
 if (Test-Path $req) { & $Python -m pip install -r $req --quiet }
 else                { & $Python -m pip install requests --quiet }
 
-# ── diretorios de dados ──────────────────────────────────────────────────────────
+# diretorios de dados
 Info "Criando diretorios de dados..."
 New-Item -ItemType Directory -Path $DataDir  -Force | Out-Null
 New-Item -ItemType Directory -Path $QueueDir -Force | Out-Null
@@ -182,18 +182,18 @@ New-Item -ItemType Directory -Path $LogDir   -Force | Out-Null
 # (re)gravar CA/config/token abaixo. As permissoes finais sao aplicadas no fim.
 icacls $DataDir /reset /T /C /Q | Out-Null
 
-# ── confiar na CA + copia para o agente ─────────────────────────────────────────
+# confiar na CA + copia para o agente
 Info "Instalando a CA da central no repositorio confiavel (LocalMachine\Root)..."
 Import-Certificate -FilePath $caTmp -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
 Copy-Item $caTmp $CaFile -Force
 Info "CA confiada e copiada para $CaFile"
 
-# ── instalar o codigo do agente ─────────────────────────────────────────────────
+# instalar o codigo do agente
 Info "Instalando binarios em $InstallDir..."
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 Copy-Item (Join-Path $srcDir '*') $InstallDir -Recurse -Force
 
-# ── gerar config.toml (com ca_cert; sem token) ──────────────────────────────────
+# gerar config.toml (com ca_cert; sem token)
 Info "Gerando config.toml..."
 if (Test-Path $ConfigFile) {
     Copy-Item $ConfigFile "$ConfigFile.bak.$(Get-Date -Format yyyyMMdd_HHmmss)" -Force
@@ -251,10 +251,10 @@ enabled = true
 [System.IO.File]::WriteAllText($ConfigFile, $cfg)
 Info "config.toml gerado em $ConfigFile (com ca_cert, sem token)"
 
-# ── token em arquivo protegido + lancador ────────────────────────────────────────
+# token em arquivo protegido + lancador
 # O runner.py NAO e um Servico nativo do Windows (nao fala o protocolo do SCM),
 # entao rodamos via Tarefa Agendada como SYSTEM, iniciada no boot. O token fica
-# num arquivo (agent.token), lido em runtime pelo lancador — fora do config.toml.
+# num arquivo (agent.token), lido em runtime pelo lancador - fora do config.toml.
 $TokenFile = Join-Path $DataDir 'agent.token'
 Set-Content -Path $TokenFile -Value $ArgusToken -Encoding ASCII -NoNewline
 
@@ -266,7 +266,7 @@ $launcher = @"
 "@
 [System.IO.File]::WriteAllText($LauncherFile, $launcher)
 
-# ── proteger APENAS o token (o unico segredo) ─────────────────────────────────────
+# proteger APENAS o token (o unico segredo)
 # Nao mexemos na ACL da pasta: o C:\ProgramData ja concede SYSTEM:F e
 # Administradores:F por heranca, entao a Tarefa (SYSTEM) le config/CA e escreve
 # logs/fila normalmente. config.toml e a CA nao sao segredos. So o token precisa
@@ -276,7 +276,7 @@ $launcher = @"
 Info "Protegendo o arquivo de token (SYSTEM + Administradores)..."
 icacls $TokenFile /inheritance:r /grant:r "*S-1-5-18:F" "*S-1-5-32-544:F" /C /Q | Out-Null
 
-# ── remover instalacoes antigas (servico e/ou tarefa) ────────────────────────────
+# remover instalacoes antigas (servico e/ou tarefa)
 if (Get-Service $AppName -ErrorAction SilentlyContinue) {
     Warn "Removendo servico antigo (migrando para Tarefa Agendada)"
     & sc.exe stop $AppName   | Out-Null
@@ -291,7 +291,7 @@ Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyC
     Where-Object { $_.CommandLine -match 'runner\.py' } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
-# ── Tarefa Agendada (SYSTEM, inicia no boot, reinicia em falha) ───────────────────
+# Tarefa Agendada (SYSTEM, inicia no boot, reinicia em falha)
 Info "Registrando a Tarefa Agendada (conta SYSTEM, inicio no boot)..."
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' `
     -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$LauncherFile`""
@@ -305,14 +305,14 @@ Register-ScheduledTask -TaskName $AppName -Action $action -Trigger $trigger `
     -Description 'Argus - coleta e envia metricas de monitoramento para a central.' -Force | Out-Null
 Info "Tarefa '$AppName' registrada"
 
-# ── validar coleta (dry-run) ─────────────────────────────────────────────────────
+# validar coleta (dry-run)
 Info "Validando a coleta (dry-run, sem enviar)..."
 $env:AGENT_API_TOKEN = $ArgusToken
 & $Python "$InstallDir\runner.py" --config $ConfigFile --dry-run --log-level WARNING
 Remove-Item Env:\AGENT_API_TOKEN -ErrorAction SilentlyContinue
 Info "Dry-run concluido (exit!=0 pode ser esperado: findings com status=error)"
 
-# ── iniciar agora (alem do boot) ──────────────────────────────────────────────────
+# iniciar agora (alem do boot)
 if ($args -notcontains '--no-start') {
     Info "Iniciando a tarefa..."
     Start-ScheduledTask -TaskName $AppName
@@ -326,7 +326,7 @@ if ($args -notcontains '--no-start') {
     Warn "--no-start ativo. Para iniciar: Start-ScheduledTask -TaskName $AppName"
 }
 
-# ── limpeza ──────────────────────────────────────────────────────────────────────
+# limpeza
 Remove-Item $Tmp -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""

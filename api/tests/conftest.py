@@ -1,9 +1,9 @@
 """
-conftest.py — Fixtures de teste
+conftest.py - Fixtures de teste
 
 Os testes rodam contra SQLite async em memória (StaticPool mantém uma única
 conexão, preservando o schema/dados durante o teste). A dependency get_session
-é sobrescrita para usar esse banco — a API nunca toca o PostgreSQL nos testes.
+é sobrescrita para usar esse banco - a API nunca toca o PostgreSQL nos testes.
 """
 
 import pytest_asyncio

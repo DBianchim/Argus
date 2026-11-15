@@ -1,4 +1,4 @@
-"""users e user_sessions — entrada do usuário no dashboard
+"""users e user_sessions - entrada do usuário no dashboard
 
 Revision ID: 0003_users_sessions
 Revises: 0002_agent_version_gin

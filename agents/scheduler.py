@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-scheduler.py — Orquestrador do ciclo de coleta e envio
+scheduler.py - Orquestrador do ciclo de coleta e envio
 
 Responsabilidade:
     Executar o ciclo completo de monitoramento em loop continuo,
@@ -17,7 +17,7 @@ Tolerancia a falhas:
     - Falha em um agente nao interrompe os demais
     - Falha de envio salva na fila local automaticamente
     - Excecoes inesperadas sao logadas e o ciclo continua
-    - O scheduler nunca encerra por conta propria — apenas por
+    - O scheduler nunca encerra por conta propria - apenas por
       sinal do sistema operacional (SIGTERM) ou KeyboardInterrupt
 
 Autores: Equipe de Infraestrutura
@@ -42,7 +42,7 @@ from core.sender import SendStatus
 logger = logging.getLogger(__name__)
 
 
-# ── controle de ciclo de vida ─────────────────────────────────────────────────
+# controle de ciclo de vida
 
 class _ShutdownHandler:
     """
@@ -63,7 +63,7 @@ class _ShutdownHandler:
         self.shutdown_requested = True
 
 
-# ── execucao dos agentes ──────────────────────────────────────────────────────
+# execucao dos agentes
 
 def _run_agent(name: str, collect_fn: Callable, config: AgentConfig) -> dict | None:
     """
@@ -126,7 +126,7 @@ def _send_agent_payload(payload: dict, config: AgentConfig) -> int | None:
     return result.config_version
 
 
-# ── ciclo principal ───────────────────────────────────────────────────────────
+# ciclo principal
 
 def _build_agent_list(config: AgentConfig) -> list[tuple[str, Callable]]:
     """
@@ -195,7 +195,7 @@ def _run_cycle(agents: list[tuple[str, Callable]], config: AgentConfig) -> int |
     return seen_version
 
 
-# ── sincronizacao de config com a central ─────────────────────────────────────
+# sincronizacao de config com a central
 
 def _sync_from_central(config: AgentConfig) -> int | None:
     """
@@ -219,7 +219,7 @@ def _sync_from_central(config: AgentConfig) -> int | None:
     return None
 
 
-# ── funcao publica ────────────────────────────────────────────────────────────
+# funcao publica
 
 def run(config: AgentConfig) -> None:
     """
@@ -303,7 +303,7 @@ def run(config: AgentConfig) -> None:
     logger.info('Scheduler encerrado graciosamente apos %d ciclos', cycle)
 
 
-# ── modo dry-run ──────────────────────────────────────────────────────────────
+# modo dry-run
 
 def _dry_run_print_payload(name: str, payload: dict) -> None:
     """
@@ -351,7 +351,7 @@ def run_dry(config: AgentConfig) -> int:
     Executa um unico ciclo de coleta SEM enviar dados (modo dry-run).
 
     Chamado exclusivamente pelo runner.py quando --dry-run e passado.
-    Nao chama sender.send_payload() nem queue_local.enqueue() — nada sai
+    Nao chama sender.send_payload() nem queue_local.enqueue() - nada sai
     da maquina e a fila local nao e tocada.
 
     Returns:

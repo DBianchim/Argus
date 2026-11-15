@@ -1,11 +1,11 @@
 """
-overview.py — Visão Geral da frota e saúde por servidor
+overview.py - Visão Geral da frota e saúde por servidor
 
-    GET /api/v1/overview             — KPIs + status de todos os servidores + alertas
-    GET /api/v1/servers/{id}/health  — saúde detalhada de um servidor (header do detalhe)
+    GET /api/v1/overview             - KPIs + status de todos os servidores + alertas
+    GET /api/v1/servers/{id}/health  - saúde detalhada de um servidor (header do detalhe)
 
 Tudo derivado em tempo de consulta pelo motor de análise (app.analysis) sobre
-o último payload de cada pilar — sem tabela de alertas na v1.
+o último payload de cada pilar - sem tabela de alertas na v1.
 """
 
 import datetime
@@ -70,7 +70,7 @@ def _build_server_view(
         config=server.config,
     )
 
-    # Resumo operacional para o card do dashboard — tolerante a chaves ausentes
+    # Resumo operacional para o card do dashboard - tolerante a chaves ausentes
     # (CONTRATO.md §3: nunca dict[chave], sempre dict.get(chave)).
     operacional = pilar_metrics.get("operacional") or {}
     cpu = operacional.get("cpu") or {}

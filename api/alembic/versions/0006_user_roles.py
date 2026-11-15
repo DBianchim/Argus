@@ -1,4 +1,4 @@
-"""role em users — controle de permissões (admin/operator/viewer)
+"""role em users - controle de permissões (admin/operator/viewer)
 
 Revision ID: 0006_user_roles
 Revises: 0005_server_config
@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Default 'admin': usuários existentes já tinham acesso irrestrito antes
-    # deste conceito existir — não regride o acesso de ninguém na migração.
+    # deste conceito existir - não regride o acesso de ninguém na migração.
     op.add_column(
         "users",
         sa.Column("role", sa.String(length=16), nullable=False, server_default="admin"),

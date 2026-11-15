@@ -1,5 +1,5 @@
 """
-test_server_registration.py — POST /api/v1/servers (registro via dashboard).
+test_server_registration.py - POST /api/v1/servers (registro via dashboard).
 """
 
 from app.auth import hash_password

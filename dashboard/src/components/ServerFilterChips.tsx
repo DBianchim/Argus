@@ -22,7 +22,7 @@ function chipClass(active: boolean): string {
   }`;
 }
 
-/** Chips SO/pilar — o pai deve envolver em `flex flex-wrap items-center gap-2`. */
+/** Chips SO/pilar - o pai deve envolver em `flex flex-wrap items-center gap-2`. */
 export function ServerFilterChips({
   os,
   setOs,

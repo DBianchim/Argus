@@ -1,5 +1,5 @@
 """
-test_ingest_stats.py — Instrumentação da ingestão (GET /api/v1/ingest/stats).
+test_ingest_stats.py - Instrumentação da ingestão (GET /api/v1/ingest/stats).
 
 Verifica que cada POST /ingest é contabilizado, que as latências são medidas,
 que o caminho de falha (503) incrementa total_failed, e que o endpoint exige
@@ -15,7 +15,7 @@ from conftest import AGENT_HEADERS, DASHBOARD_HEADERS, make_envelope
 
 @pytest.fixture(autouse=True)
 def _reset_metrics():
-    """O singleton é global de processo — zera antes de cada teste isolar contagens."""
+    """O singleton é global de processo - zera antes de cada teste isolar contagens."""
     ingest_metrics.reset()
     yield
     ingest_metrics.reset()
@@ -55,7 +55,7 @@ async def test_stats_counts_successful_ingest(client, server_id):
 
 
 async def test_stats_ignores_rejected_payloads(client, server_id):
-    # 422 (corpo inválido) nunca chega a persistir — não deve contar como recebido,
+    # 422 (corpo inválido) nunca chega a persistir - não deve contar como recebido,
     # pois a instrumentação vive dentro do handler, após a validação Pydantic.
     bad = make_envelope()
     bad["metrics"] = {}
@@ -66,7 +66,7 @@ async def test_stats_ignores_rejected_payloads(client, server_id):
 
 
 async def test_stats_counts_persist_failure(client, server_id, monkeypatch):
-    # Força a persistência a falhar → 503 e total_failed incrementado.
+    # Força a persistência a falhar -> 503 e total_failed incrementado.
     async def boom(*args, **kwargs):
         raise RuntimeError("db down")
 

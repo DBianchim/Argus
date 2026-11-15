@@ -1,12 +1,12 @@
 # =============================================================================
-# Dockerfile — imagem da CENTRAL do Argus (API + dashboard buildado)
+# Dockerfile - imagem da CENTRAL do Argus (API + dashboard buildado)
 #
 # Multi-stage:
-#   1) dashboard-build  → builda o SPA (React/Vite) e produz /dashboard/dist
-#   2) runtime          → API FastAPI servindo o dist (deploy único)
+#   1) dashboard-build  -> builda o SPA (React/Vite) e produz /dashboard/dist
+#   2) runtime          -> API FastAPI servindo o dist (deploy único)
 #
 # O layout interno reproduz o que api/app/main.py espera:
-#   /app/api/app/main.py  →  sobe 3 níveis  →  /app/dashboard/dist
+#   /app/api/app/main.py  ->  sobe 3 níveis  ->  /app/dashboard/dist
 # Assim NÃO é preciso alterar o código da API.
 # =============================================================================
 
@@ -44,8 +44,8 @@ COPY api/ /app/api/
 COPY --from=dashboard-build /dashboard/dist /app/dashboard/dist
 
 # Artefatos de instalação dos agentes, servidos pela rota /install:
-#   - agents/  → empacotado em argus-agent.zip sob demanda
-#   - install/ → scripts install.ps1 / install.sh
+#   - agents/  -> empacotado em argus-agent.zip sob demanda
+#   - install/ -> scripts install.ps1 / install.sh
 COPY agents/ /app/agents/
 COPY install/ /app/install/
 

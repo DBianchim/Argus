@@ -1,17 +1,17 @@
 """
-servers.py — Consultas e gestão de servidores
+servers.py - Consultas e gestão de servidores
 
-    GET    /api/v1/servers                    — lista os servidores registrados     (viewer+)
-    POST   /api/v1/servers                    — registra um servidor, gera o token  (operator+)
-    GET    /api/v1/servers/{id}/latest        — último payload de cada pilar        (viewer+)
-    PATCH  /api/v1/servers/{id}               — apelido / ativar-desativar          (operator+)
-    DELETE /api/v1/servers/{id}               — remove o servidor (cascade)         (operator+)
-    GET    /api/v1/servers/{id}/config        — config do agente (editor)          (viewer+)
-    PUT    /api/v1/servers/{id}/config        — substitui a config                  (operator+)
-    POST   /api/v1/servers/{id}/alerts/ack    — reconhece o alerta (pilar, item)    (viewer+, sessão de usuário)
+    GET    /api/v1/servers                    - lista os servidores registrados     (viewer+)
+    POST   /api/v1/servers                    - registra um servidor, gera o token  (operator+)
+    GET    /api/v1/servers/{id}/latest        - último payload de cada pilar        (viewer+)
+    PATCH  /api/v1/servers/{id}               - apelido / ativar-desativar          (operator+)
+    DELETE /api/v1/servers/{id}               - remove o servidor (cascade)         (operator+)
+    GET    /api/v1/servers/{id}/config        - config do agente (editor)          (viewer+)
+    PUT    /api/v1/servers/{id}/config        - substitui a config                  (operator+)
+    POST   /api/v1/servers/{id}/alerts/ack    - reconhece o alerta (pilar, item)    (viewer+, sessão de usuário)
 
 Leitura exige apenas sessão válida (require_dashboard); edição/remoção exige
-papel operator ou admin (require_operator) — ver app.auth para a hierarquia.
+papel operator ou admin (require_operator) - ver app.auth para a hierarquia.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -59,7 +59,7 @@ async def list_servers(session: AsyncSession = Depends(get_session)):
     dependencies=[Depends(require_operator)],
 )
 async def create_server(body: ServerCreate, session: AsyncSession = Depends(get_session)):
-    """Registra um servidor pelo dashboard — equivalente a `manage.py create-server`.
+    """Registra um servidor pelo dashboard - equivalente a `manage.py create-server`.
     O token só existe em claro nesta resposta; o agente se autentica com ele."""
     server, token = await crud.create_server(
         session,
@@ -141,7 +141,7 @@ async def ack_alert(
     current=Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Reconhece o alerta ativo (pilar, item) de um servidor. Não silencia — o
+    """Reconhece o alerta ativo (pilar, item) de um servidor. Não silencia - o
     alerta some da lista quando a métrica normaliza, não quando reconhecido."""
     await _get_or_404(session, server_id)
     _, user = current

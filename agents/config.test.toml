@@ -14,13 +14,13 @@
 api_url   = "http://localhost:8000"
 api_token = "argus-dev-token-2026"
 hostname  = ""
-# mock_server usa HTTP sem TLS — intencional apenas em dev.
+# mock_server usa HTTP sem TLS - intencional apenas em dev.
 # Suprime o aviso de seguranca de HTTP plaintext.
 allow_http = true
 
 
 [schedule]
-# Ciclo rápido para validação — 30 segundos
+# Ciclo rápido para validação - 30 segundos
 interval_seconds = 30
 
 

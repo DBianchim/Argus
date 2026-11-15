@@ -1,11 +1,11 @@
 #!/bin/sh
-# backup.sh — dump periodico do Postgres da central, com retencao.
+# backup.sh - dump periodico do Postgres da central, com retencao.
 #
 # Roda como sidecar no docker-compose (imagem postgres:18, mesma versao do
-# banco — garante pg_dump/pg_restore compativeis). Grava em /backups, que o
+# banco - garante pg_dump/pg_restore compativeis). Grava em /backups, que o
 # compose liga a uma pasta do HOST (./backups), nao um volume Docker gerenciado:
 # assim o arquivo fica acessivel para copiar para fora da maquina (rsync,
-# robocopy, sync de nuvem) sem precisar entender o storage interno do Docker —
+# robocopy, sync de nuvem) sem precisar entender o storage interno do Docker -
 # um backup que so existe no mesmo disco da central nao protege contra a perda
 # desse disco.
 #
@@ -43,7 +43,7 @@ run_backup() {
 
 echo "[backup] sidecar iniciado | intervalo=${INTERVAL_HOURS}h | retencao=${RETENTION_DAYS}d | destino=${BACKUP_DIR}"
 
-# Primeiro dump logo na subida — nao espera o primeiro intervalo completo, ou
+# Primeiro dump logo na subida - nao espera o primeiro intervalo completo, ou
 # um reinicio antes do primeiro ciclo deixaria a central sem nenhum backup.
 run_backup || true
 

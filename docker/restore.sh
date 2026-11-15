@@ -1,11 +1,11 @@
 #!/bin/sh
-# restore.sh — restaura um dump de /backups no banco `argus`.
+# restore.sh - restaura um dump de /backups no banco `argus`.
 #
 # ATENCAO: sobrescreve o banco atual (--clean). Confirme antes de rodar contra
 # uma central em producao.
 #
-# Uso (a partir do host, com a central no ar). Pare a `api` antes — conexoes
-# abertas travam o --clean — e suba de novo depois:
+# Uso (a partir do host, com a central no ar). Pare a `api` antes - conexoes
+# abertas travam o --clean - e suba de novo depois:
 #   docker compose exec backup sh /restore.sh --list
 #   docker compose stop api
 #   docker compose exec backup sh /restore.sh argus-20260713T220000Z.dump

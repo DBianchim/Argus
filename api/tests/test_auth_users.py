@@ -1,5 +1,5 @@
 """
-test_auth_users.py — Entrada do usuário: login, sessões, logout, revogação.
+test_auth_users.py - Entrada do usuário: login, sessões, logout, revogação.
 """
 
 import datetime
@@ -33,7 +33,7 @@ async def _login(client, username="david", password=PASSWORD):
                              json={"username": username, "password": password})
 
 
-# ── login ─────────────────────────────────────────────────────────────────────
+# login
 
 async def test_login_success_returns_session(client, session_factory):
     await _create_user(session_factory)
@@ -52,7 +52,7 @@ async def test_login_wrong_password_generic_401(client, session_factory):
 
 
 async def test_login_unknown_user_same_generic_message(client, session_factory):
-    # Mensagem idêntica à de senha errada — não revela se o usuário existe
+    # Mensagem idêntica à de senha errada - não revela se o usuário existe
     resp = await _login(client, username="nao-existe")
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Credenciais inválidas"
@@ -64,7 +64,7 @@ async def test_login_inactive_user_401(client, session_factory):
     assert resp.status_code == 401
 
 
-# ── sessões ───────────────────────────────────────────────────────────────────
+# sessões
 
 async def test_session_token_grants_dashboard_access(client, session_factory):
     await _create_user(session_factory)
@@ -84,7 +84,7 @@ async def test_me_returns_logged_user(client, session_factory):
 
 
 async def test_me_rejects_service_token(client):
-    # O token de serviço não é uma pessoa — /me exige sessão
+    # O token de serviço não é uma pessoa - /me exige sessão
     resp = await client.get("/api/v1/auth/me", headers=DASHBOARD_HEADERS)
     assert resp.status_code == 401
 

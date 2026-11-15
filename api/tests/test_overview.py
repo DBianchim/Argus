@@ -1,5 +1,5 @@
 """
-test_overview.py — Visão Geral: KPIs, status derivados pelo motor e alertas.
+test_overview.py - Visão Geral: KPIs, status derivados pelo motor e alertas.
 """
 
 import datetime
@@ -91,7 +91,7 @@ async def test_overview_operacional_summary_and_sparkline(client, server_id):
     body = (await client.get("/api/v1/overview", headers=DASHBOARD_HEADERS)).json()
     server = body["servers"][0]
 
-    # Resumo vem do payload mais recente (22:10) — inclui o pior disco (66%).
+    # Resumo vem do payload mais recente (22:10) - inclui o pior disco (66%).
     assert server["cpu_pct"] == 46.0
     assert server["mem_pct"] == 55.0
     assert server["disk_pct"] == 66.0

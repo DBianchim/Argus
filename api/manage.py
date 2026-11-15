@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-manage.py — CLI administrativa da API Argus
+manage.py - CLI administrativa da API Argus
 
 Comandos:
-    create-server   — registra um servidor e gera o token (exibido UMA vez)
-    list-servers    — lista os servidores registrados
-    revoke-server   — desativa um servidor (is_active=false → ingest passa a 401)
-    create-user     — cria um usuário do dashboard (senha via prompt seguro)
-    list-users      — lista os usuários
-    deactivate-user — desativa um usuário (login passa a falhar)
-    set-role        — muda o papel de um usuário (admin/operator/viewer)
+    create-server   - registra um servidor e gera o token (exibido UMA vez)
+    list-servers    - lista os servidores registrados
+    revoke-server   - desativa um servidor (is_active=false -> ingest passa a 401)
+    create-user     - cria um usuário do dashboard (senha via prompt seguro)
+    list-users      - lista os usuários
+    deactivate-user - desativa um usuário (login passa a falhar)
+    set-role        - muda o papel de um usuário (admin/operator/viewer)
 
 Papéis (permissões):
-    admin    — gerencia usuários e servidores (tudo)
-    operator — edita/remove servidores e config, mas não gerencia usuários
-    viewer   — somente leitura
+    admin    - gerencia usuários e servidores (tudo)
+    operator - edita/remove servidores e config, mas não gerencia usuários
+    viewer   - somente leitura
 
 Uso (a partir de api/):
     python manage.py create-server --hostname DESKTOP --os windows
@@ -80,7 +80,7 @@ async def _revoke_server(server_id: int) -> None:
 
 
 async def _create_user(username: str, display_name: str | None, role: str) -> None:
-    # Senha via prompt oculto — nunca em argv (visível no histórico do shell)
+    # Senha via prompt oculto - nunca em argv (visível no histórico do shell)
     password = getpass.getpass("Senha do novo usuario: ")
     confirm = getpass.getpass("Confirme a senha: ")
     if password != confirm:

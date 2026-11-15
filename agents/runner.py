@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-runner.py — Ponto de entrada principal do agente de monitoramento
+runner.py - Ponto de entrada principal do agente de monitoramento
 
 Responsabilidade:
     Inicializar o sistema de logging, carregar e validar a configuracao,
@@ -35,7 +35,7 @@ from core.config_loader import load_config
 from core.instance_lock import acquire_instance_lock
 from core.sysutils import AGENT_VERSION, state_dir_error
 
-# ── constantes ────────────────────────────────────────────────────────────────
+# constantes
 
 # Fonte unica da versao: core/sysutils.py (mesma enviada nos payloads).
 VERSION    = AGENT_VERSION
@@ -48,7 +48,7 @@ _LOG_DIR = {
 }
 
 
-# ── configuracao de logging ───────────────────────────────────────────────────
+# configuracao de logging
 
 def _setup_logging(log_level: str, log_dir: Path | None = None) -> None:
     """
@@ -102,7 +102,7 @@ def _setup_logging(log_level: str, log_dir: Path | None = None) -> None:
             )
 
 
-# ── argparse ──────────────────────────────────────────────────────────────────
+# argparse
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -150,7 +150,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# ── resumo de inicializacao ───────────────────────────────────────────────────
+# resumo de inicializacao
 
 def _print_startup_summary(config, dry_run: bool = False) -> None:
     logger = logging.getLogger(__name__)
@@ -180,11 +180,11 @@ def _print_startup_summary(config, dry_run: bool = False) -> None:
     logger.info('=' * 60)
 
 
-# ── ponto de entrada ──────────────────────────────────────────────────────────
+# ponto de entrada
 
 def main() -> None:
     """
-    Funcao principal — inicializa e executa o agente de monitoramento.
+    Funcao principal - inicializa e executa o agente de monitoramento.
 
     Sequencia de inicializacao:
         1. Processa argumentos de linha de comando

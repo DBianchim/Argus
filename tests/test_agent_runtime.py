@@ -1,5 +1,5 @@
 """
-test_agent_runtime.py — Estado em disco e instancia unica do agente
+test_agent_runtime.py - Estado em disco e instancia unica do agente
 ====================================================================
 Execute com:
     python -m unittest tests/test_agent_runtime.py -v
@@ -7,7 +7,7 @@ Execute com:
 Cobre:
     - gravacao do estado (backup_state.json) na pasta PAI da fila local e o
       comportamento claro (state_warning / aviso no runner) quando ela nao grava
-      — caso real: Linux com ProtectSystem=strict e pasta root:root;
+      - caso real: Linux com ProtectSystem=strict e pasta root:root;
     - trava de instancia unica (runner.py): segunda instancia e recusada e o lock
       de um processo morto e reaproveitado.
 """
@@ -25,7 +25,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-# Aponta para agents/ — um nivel acima de tests/
+# Aponta para agents/ - um nivel acima de tests/
 AGENTS_DIR = Path(__file__).parent.parent / "agents"
 sys.path.insert(0, str(AGENTS_DIR))
 

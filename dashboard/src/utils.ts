@@ -79,7 +79,7 @@ export const STATUS_RANK: Record<StatusValue, number> = {
   ok: 4,
 };
 
-/** "há 2 min", "há 3 h", "agora" — sinal de confiança em todo dado exibido. */
+/** "há 2 min", "há 3 h", "agora" - sinal de confiança em todo dado exibido. */
 export function relativeTime(iso: string | null): string {
   if (!iso) return "nunca";
   const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -96,7 +96,7 @@ export function formatPct(value: number | undefined | null): string {
   return typeof value === "number" ? `${value.toFixed(1)}%` : "—";
 }
 
-/** "128d 6h", "6h 12min", "45min" — legível para operador, sem casas decimais. */
+/** "128d 6h", "6h 12min", "45min" - legível para operador, sem casas decimais. */
 export function formatUptime(seconds: number | null | undefined): string {
   if (typeof seconds !== "number" || seconds < 0) return "—";
   const days = Math.floor(seconds / 86400);

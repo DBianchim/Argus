@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sender.py — Modulo de envio HTTP para o sistema central
+sender.py - Modulo de envio HTTP para o sistema central
 
 Responsabilidade:
     Enviar payloads de metricas para a API central via HTTP POST,
@@ -14,12 +14,12 @@ Fluxo de envio:
     4. Erros nao recuperaveis (401, 400) sao logados e descartados
 
 Codigos HTTP e acoes:
-    200  → sucesso, payload aceito pelo sistema central
-    400  → payload invalido, NAO reenviar (problema nos dados)
-    401  → token invalido, NAO reenviar (problema de configuracao)
-    422  → formato incorreto, NAO reenviar (problema nos dados)
-    503  → sistema indisponivel, salvar na fila local
-    timeout → tratar como 503
+    200  -> sucesso, payload aceito pelo sistema central
+    400  -> payload invalido, NAO reenviar (problema nos dados)
+    401  -> token invalido, NAO reenviar (problema de configuracao)
+    422  -> formato incorreto, NAO reenviar (problema nos dados)
+    503  -> sistema indisponivel, salvar na fila local
+    timeout -> tratar como 503
 
 Autores: Equipe de Infraestrutura
 """
@@ -39,15 +39,15 @@ from core.config_loader import AgentConfig
 logger = logging.getLogger(__name__)
 
 
-# ── resultado do envio ────────────────────────────────────────────────────────
+# resultado do envio
 
 class SendStatus(Enum):
     """
     Resultado possivel de uma tentativa de envio.
 
-        SUCCESS      → payload aceito, nenhuma acao adicional necessaria
-        QUEUED       → falha recuperavel, payload salvo na fila local
-        DISCARDED    → falha nao recuperavel, payload descartado
+        SUCCESS      -> payload aceito, nenhuma acao adicional necessaria
+        QUEUED       -> falha recuperavel, payload salvo na fila local
+        DISCARDED    -> falha nao recuperavel, payload descartado
     """
     SUCCESS   = auto()
     QUEUED    = auto()
@@ -75,11 +75,11 @@ class SendResult:
     config_version: int | None = None
 
 
-# Codigos HTTP que indicam problema nos dados/configuracao — nao reenviar
+# Codigos HTTP que indicam problema nos dados/configuracao - nao reenviar
 _NON_RETRYABLE_CODES = {400, 401, 403, 422}
 
 
-# ── funcoes internas ──────────────────────────────────────────────────────────
+# funcoes internas
 
 def _build_headers(api_token: str) -> dict[str, str]:
     return {
@@ -118,13 +118,13 @@ def _attempt_send(
     Args:
         verify: Validacao TLS. True = CAs padrao do sistema; caminho de arquivo
                 PEM = valida contra essa CA (ex.: CA interna do Caddy). Nunca
-                False — a validacao TLS permanece sempre ativa.
+                False - a validacao TLS permanece sempre ativa.
 
     Returns:
         Tupla (http_code, config_version, exception). config_version vem do corpo
         JSON da resposta 200 (sinal de sync da central); None se ausente.
     """
-    # X-Request-ID unico por tentativa — permite ao servidor correlacionar
+    # X-Request-ID unico por tentativa - permite ao servidor correlacionar
     # retries e detectar duplicatas nos logs.
     attempt_headers = {**headers, 'X-Request-ID': str(uuid.uuid4())}
 
@@ -153,7 +153,7 @@ def _attempt_send(
         return None, None, e
 
 
-# ── funcao publica principal ──────────────────────────────────────────────────
+# funcao publica principal
 
 def send_payload(payload: dict, config: AgentConfig, queue_fn=None) -> SendResult:
     """
@@ -244,7 +244,7 @@ def send_payload(payload: dict, config: AgentConfig, queue_fn=None) -> SendResul
                 attempt, max_att, http_code, pilar
             )
 
-    # Todas as tentativas esgotadas — encaminhar para fila local
+    # Todas as tentativas esgotadas - encaminhar para fila local
     if queue_fn is not None:
         try:
             queue_fn(payload)

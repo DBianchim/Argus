@@ -1,14 +1,14 @@
 """
-main.py — Aplicação FastAPI da central Argus
+main.py - Aplicação FastAPI da central Argus
 
 Registra os routers (health, ingest, auth, overview, servers, metrics,
 notifications) e expõe a documentação automática em /docs.
 
-Um loop em background (lifespan) detecta servidores OFFLINE — ingest é
+Um loop em background (lifespan) detecta servidores OFFLINE - ingest é
 event-driven, mas "sem payload" não gera evento.
 
 Quando o build do dashboard existe (dashboard/dist), a SPA é servida pela
-própria API — deploy único. Em desenvolvimento, o Vite roda separado com proxy.
+própria API - deploy único. Em desenvolvimento, o Vite roda separado com proxy.
 
 Execução:
     uvicorn app.main:app --port 8000 --reload
@@ -56,7 +56,7 @@ async def check_offline(session, now: datetime.datetime) -> None:
 
     Passar as métricas reais é essencial: com {} um servidor ONLINE seria
     reavaliado como UNKNOWN a cada ciclo, e o próximo ingest o devolveria a
-    CRIT/WARN — gerando uma notificação repetida a cada payload.
+    CRIT/WARN - gerando uma notificação repetida a cada payload.
     """
     for server in await crud.servers_for_offline_check(session):
         latest = await crud.latest_per_pilar(session, server.id)
@@ -116,7 +116,7 @@ app.include_router(agent_config.router)
 app.include_router(users.router)
 
 
-# ── SPA (build do dashboard) ──────────────────────────────────────────────────
+# SPA (build do dashboard)
 # Os routers acima foram registrados primeiro, então /api/*, /health e /docs
 # têm precedência sobre o catch-all da SPA.
 
@@ -149,7 +149,7 @@ if _DIST.is_dir():
         candidate = _dist_file(_DIST, full_path)
         if candidate is not None:
             return FileResponse(candidate)
-        # Qualquer rota não-arquivo → index.html (client-side routing)
+        # Qualquer rota não-arquivo -> index.html (client-side routing)
         return FileResponse(_DIST / "index.html")
 
 else:

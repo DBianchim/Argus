@@ -1,4 +1,4 @@
-"""health.py — Liveness/readiness: GET /health (checa o banco)."""
+"""health.py - Liveness/readiness: GET /health (checa o banco)."""
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse

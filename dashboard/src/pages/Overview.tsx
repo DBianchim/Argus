@@ -23,7 +23,7 @@ const SEGMENTS: { key: StatusValue; className: string }[] = [
   { key: "unknown", className: "bg-status-unknown" },
 ];
 
-/** Pior status de um pilar entre todos os servidores — alimenta os dots do menu lateral. */
+/** Pior status de um pilar entre todos os servidores - alimenta os dots do menu lateral. */
 function worstPilarStatus(servers: ServerOverview[], pilar: (typeof PILARES)[number]): StatusValue {
   let worst: StatusValue = "ok";
   for (const s of servers) {

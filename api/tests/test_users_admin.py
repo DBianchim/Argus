@@ -1,5 +1,5 @@
 """
-test_users_admin.py — Gerenciamento de usuários e permissões (papéis).
+test_users_admin.py - Gerenciamento de usuários e permissões (papéis).
 
 Cobre: CRUD de usuários (admin), gating por papel nos endpoints de servidores,
 proteção do último admin, troca de senha (self-service) e reset (admin).
@@ -37,7 +37,7 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-# ── CRUD de usuarios (admin) ───────────────────────────────────────────────────
+# CRUD de usuarios (admin)
 
 async def test_admin_can_list_users(client, session_factory):
     await _create_user(session_factory, "admin1", "admin")
@@ -109,7 +109,7 @@ async def test_admin_can_delete_user(client, session_factory):
     assert all(u["id"] != target_id for u in resp.json())
 
 
-# ── protecao do ultimo admin ───────────────────────────────────────────────────
+# protecao do ultimo admin
 
 async def test_cannot_demote_last_active_admin(client, session_factory):
     admin_id = await _create_user(session_factory, "solo-admin", "admin")
@@ -139,7 +139,7 @@ async def test_can_demote_admin_when_another_admin_remains(client, session_facto
     assert resp.status_code == 200
 
 
-# ── gating por papel nos endpoints de servidores ──────────────────────────────
+# gating por papel nos endpoints de servidores
 
 async def _make_server(session_factory) -> int:
     async with session_factory() as session:
@@ -192,7 +192,7 @@ async def test_service_token_still_manages_servers(client, session_factory):
     assert resp.status_code == 200
 
 
-# ── senha: reset (admin) e troca (self-service) ───────────────────────────────
+# senha: reset (admin) e troca (self-service)
 
 async def test_admin_can_reset_password(client, session_factory):
     await _create_user(session_factory, "admin1", "admin")

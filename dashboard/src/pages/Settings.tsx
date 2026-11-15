@@ -16,7 +16,7 @@ const numOr = (v: string, fallback: number) => {
 };
 
 // `inline-block` é essencial aqui: um <span> é inline por padrão, então
-// width/height explícitos são ignorados — com o único filho em position:absolute
+// width/height explícitos são ignorados - com o único filho em position:absolute
 // (fora do fluxo), o pill colapsava para 0×0 e só o círculo branco escapava, solto.
 function TogglePill({ on }: { on: boolean }) {
   return (
@@ -39,7 +39,7 @@ function Toggle({
 }: {
   on: boolean;
   onClick: () => void;
-  /** [rótulo quando ativo, rótulo quando inativo] — omitido = pill sozinho, compacto. */
+  /** [rótulo quando ativo, rótulo quando inativo] - omitido = pill sozinho, compacto. */
   labels?: [string, string];
   className?: string;
 }) {
@@ -197,7 +197,7 @@ function ServerConfigPanel({ serverId, servers }: { serverId: number; servers: S
         ...base,
         interval_seconds: interval,
         // enabled por pilar: um servidor sem backup (ou sem AD, etc.) pode desligar
-        // só aquele pilar — o pilar ausente vira "unknown" na análise, nunca "crit".
+        // só aquele pilar - o pilar ausente vira "unknown" na análise, nunca "crit".
         operacional: { ...(base.operacional ?? {}), enabled: opEnabled, critical_services: services, ...th },
         backup: { ...(base.backup ?? {}), enabled: backupEnabled, paths, extensions, sla_hours: slaHours, min_size_mb: minSizeMb },
         acesso: { ...(base.acesso ?? {}), enabled: acessoEnabled, failed_login_threshold: failedLoginTh, alert_on_account_change: alertAccountChange },
